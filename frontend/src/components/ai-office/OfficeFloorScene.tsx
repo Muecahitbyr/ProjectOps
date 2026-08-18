@@ -124,16 +124,20 @@ interface ZoneProps {
   registerDeskRef: (agentId: string, el: HTMLDivElement | null) => void;
 }
 
+// Kein umrandeter "Karten"-Kasten mehr um die Gruppe - die Tische stehen
+// direkt auf dem offenen Boden (Video-Referenz: keine sichtbaren
+// Box-Grenzen zwischen den Bereichen, nur Abstand + Label sorgen fuer
+// Gliederung).
 const OfficeZone = memo(function OfficeZone({ title, agents, emptyLabel, accentColor, awayAgentId, onSelectAgent, registerDeskRef }: ZoneProps) {
   return (
     <Box sx={{ flex: 1, minWidth: 200 }}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 1, px: 0.5 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 1.5, px: 0.5 }}>
         <Box sx={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: accentColor }} />
         <Box sx={{ fontSize: "0.68rem", fontWeight: 800, letterSpacing: "0.05em", color: "#6b5c47", textTransform: "uppercase" }}>{title}</Box>
       </Box>
-      <Box sx={{ minHeight: 116, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.28)", border: "1px dashed rgba(139,115,85,0.25)", display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: agents.length === 0 ? "center" : "flex-start", gap: 1.5, p: 1.5 }}>
+      <Box sx={{ minHeight: 90, display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 2.5, px: 0.5 }}>
         {agents.length === 0 ? (
-          <Box sx={{ color: "#a3937a", fontSize: "0.75rem", fontStyle: "italic", alignSelf: "center" }}>{emptyLabel ?? "Noch niemand hier"}</Box>
+          <Box sx={{ color: "#a3937a", fontSize: "0.72rem", fontStyle: "italic" }}>{emptyLabel ?? "Noch niemand hier"}</Box>
         ) : (
           agents.map(({ agent, color }) => (
             <OfficeDesk key={agent.rule.id} agent={agent} color={color} away={awayAgentId === agent.rule.id} onSelectAgent={onSelectAgent} deskRef={(el) => registerDeskRef(agent.rule.id, el)} />
@@ -162,10 +166,10 @@ const OfficeKitchen = memo(function OfficeKitchen({
 }) {
   return (
     <Box sx={{ position: "relative", width: 300, maxWidth: "100%" }}>
-      <Box sx={{ fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.05em", color: "#6b5c47", textTransform: "uppercase", textAlign: "center", mb: 1 }}>
+      <Box sx={{ fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.05em", color: "#6b5c47", textTransform: "uppercase", textAlign: "center", mb: 1.5 }}>
         ☕ Küche
       </Box>
-      <Box sx={{ position: "relative", height: 128, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.32)", border: "1px dashed rgba(139,115,85,0.25)", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 3, pb: 1.5 }}>
+      <Box sx={{ position: "relative", height: 90, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 3 }}>
         {/* Kuehlschrank mit echter Tuer-Oeffnen-Animation */}
         <Box ref={fridgeRef} sx={{ position: "relative", width: 32, height: 51, borderRadius: "4px", backgroundColor: "#2a2d33", perspective: "160px" }}>
           {/* Inneres (wird beim Oeffnen sichtbar) */}
@@ -250,10 +254,10 @@ const OfficeKitchen = memo(function OfficeKitchen({
 const OfficeChillArea = memo(function OfficeChillArea({ chillRef }: { chillRef: (el: HTMLDivElement | null) => void }) {
   return (
     <Box sx={{ position: "relative", width: 240, maxWidth: "100%" }}>
-      <Box sx={{ fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.05em", color: "#6b5c47", textTransform: "uppercase", textAlign: "center", mb: 1 }}>
+      <Box sx={{ fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.05em", color: "#6b5c47", textTransform: "uppercase", textAlign: "center", mb: 1.5 }}>
         🛋️ Chill Area
       </Box>
-      <Box ref={chillRef} sx={{ position: "relative", height: 128, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.32)", border: "1px dashed rgba(139,115,85,0.25)", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 2, pb: 1.5 }}>
+      <Box ref={chillRef} sx={{ position: "relative", height: 90, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 2 }}>
         {/* Couch - schlichter, flacher Stil (Video-Referenz): ein Sitzkissen
             in Akzentfarbe auf dunkelgrauer Basis statt mehrerer Einzelpolster. */}
         <Box sx={{ position: "relative", width: 74, height: 24 }}>
@@ -566,25 +570,26 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
         <Box sx={{ fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.06em", color: "#444" }}>LIVE</Box>
       </Box>
 
-      {/* Boden mit Abteilungen */}
+      {/* Boden mit Abteilungen - offener Raum ohne Karten-Kaesten (Video-
+          Referenz), nur Ueberschrift + Abstand gliedern die Bereiche. */}
       <Box sx={{ position: "relative", mt: "150px", pb: 3, px: { xs: 2, sm: 4 } }}>
         <Box sx={{ mb: 1 }}>
-          <Box sx={{ fontSize: "0.8rem", fontWeight: 800, color: "#4a3d2a", mb: 1, pl: 0.5 }}>🏠 Meine Projekte</Box>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+          <Box sx={{ fontSize: "0.8rem", fontWeight: 800, color: "#4a3d2a", mb: 1.5, pl: 0.5 }}>🏠 Meine Projekte</Box>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
             <OfficeZone title="Apps" agents={ownApps} accentColor="#3b82f6" awayAgentId={walker?.agentId ?? null} onSelectAgent={onSelectAgent} registerDeskRef={registerDeskRef} emptyLabel="Keine aktiven Automation Rules für App-Projekte" />
             <OfficeZone title="Webseiten" agents={ownWebsites} accentColor="#14b8a6" awayAgentId={walker?.agentId ?? null} onSelectAgent={onSelectAgent} registerDeskRef={registerDeskRef} emptyLabel="Keine aktiven Automation Rules für Webseiten-Projekte" />
           </Box>
         </Box>
 
-        <Box sx={{ mt: 2 }}>
-          <Box sx={{ fontSize: "0.8rem", fontWeight: 800, color: "#4a3d2a", mb: 1, pl: 0.5 }}>💼 Kundenprojekte</Box>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+        <Box sx={{ mt: 3 }}>
+          <Box sx={{ fontSize: "0.8rem", fontWeight: 800, color: "#4a3d2a", mb: 1.5, pl: 0.5 }}>💼 Kundenprojekte</Box>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
             <OfficeZone title="Apps" agents={[]} accentColor="#9ca3af" awayAgentId={null} onSelectAgent={onSelectAgent} registerDeskRef={registerDeskRef} emptyLabel="Noch keine Kundenprojekte hinterlegt" />
             <OfficeZone title="Webseiten" agents={[]} accentColor="#9ca3af" awayAgentId={null} onSelectAgent={onSelectAgent} registerDeskRef={registerDeskRef} emptyLabel="Noch keine Kundenprojekte hinterlegt" />
           </Box>
         </Box>
 
-        <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 2, mt: 2 }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 5, mt: 4 }}>
           <OfficeKitchen coffeeRef={registerCoffeeRef} fridgeRef={registerFridgeRef} fridgeOpen={fridgeOpen} />
           <OfficeChillArea chillRef={registerChillRef} />
         </Box>
