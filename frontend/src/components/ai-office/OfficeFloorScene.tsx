@@ -119,7 +119,7 @@ interface ZoneProps {
   agents: { agent: AgentSnapshot; color: string }[];
   emptyLabel?: string;
   accentColor: string;
-  awayAgentId: string | null;
+  awayAgentIds: Set<string>;
   onSelectAgent: (agent: AgentSnapshot) => void;
   registerDeskRef: (agentId: string, el: HTMLDivElement | null) => void;
 }
@@ -128,7 +128,7 @@ interface ZoneProps {
 // direkt auf dem offenen Boden (Video-Referenz: keine sichtbaren
 // Box-Grenzen zwischen den Bereichen, nur Abstand + Label sorgen fuer
 // Gliederung).
-const OfficeZone = memo(function OfficeZone({ title, agents, emptyLabel, accentColor, awayAgentId, onSelectAgent, registerDeskRef }: ZoneProps) {
+const OfficeZone = memo(function OfficeZone({ title, agents, emptyLabel, accentColor, awayAgentIds, onSelectAgent, registerDeskRef }: ZoneProps) {
   return (
     <Box sx={{ flex: 1, minWidth: 200 }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 1.5, px: 0.5 }}>
@@ -140,7 +140,7 @@ const OfficeZone = memo(function OfficeZone({ title, agents, emptyLabel, accentC
           <Box sx={{ color: "#a3937a", fontSize: "0.72rem", fontStyle: "italic" }}>{emptyLabel ?? "Noch niemand hier"}</Box>
         ) : (
           agents.map(({ agent, color }) => (
-            <OfficeDesk key={agent.rule.id} agent={agent} color={color} away={awayAgentId === agent.rule.id} onSelectAgent={onSelectAgent} deskRef={(el) => registerDeskRef(agent.rule.id, el)} />
+            <OfficeDesk key={agent.rule.id} agent={agent} color={color} away={awayAgentIds.has(agent.rule.id)} onSelectAgent={onSelectAgent} deskRef={(el) => registerDeskRef(agent.rule.id, el)} />
           ))
         )}
       </Box>
@@ -347,15 +347,18 @@ function OfficeLyingCharacter({ color }: { color: string }) {
   );
 }
 
-// Eine echte, laufende Person zwischen ihrem echten Schreibtisch und einem
-// von drei Pausenzielen (Kaffee/Kuehlschrank/Chill Area) - Position wird per
-// getBoundingClientRect() der tatsaechlichen DOM-Elemente gemessen (kein
-// geratener/fixer Pfad), animiert per CSS-transition. Nur real IDLE Agenten
-// (echter Zustand: seit je nie ausgeloest) werden ausgewaehlt - keine
+// Echte, laufende Personen zwischen ihrem echten Schreibtisch und einem von
+// vier Zielen (Kaffee/Kuehlschrank/Chill Area/freies Umherlaufen) - Position
+// wird per getBoundingClientRect() der tatsaechlichen DOM-Elemente gemessen
+// (kein geratener/fixer Pfad), animiert per CSS-transition. Nur real IDLE
+// Agenten (echter Zustand: seit je nie ausgeloest) werden ausgewaehlt - keine
 // erfundene Aktivitaet fuer WORKING/BLOCKED/WAITING-Agenten, deren echter
-// Status damit nicht verfaelscht wird.
-type WalkDestination = "coffee" | "fridge" | "chill";
-const DESTINATION_ITEM: Record<WalkDestination, string> = { coffee: "☕", fridge: "🥤", chill: "😌" };
+// Status damit nicht verfaelscht wird. Mehrere IDLE Agenten koennen
+// gleichzeitig unterwegs sein (nicht nur einer nach dem anderen) - "sie
+// muessen nicht standardmaessig am Platz sein".
+type WalkDestination = "coffee" | "fridge" | "chill" | "wander";
+const DESTINATION_ITEM: Record<WalkDestination, string> = { coffee: "☕", fridge: "🥤", chill: "😌", wander: "" };
+const MAX_CONCURRENT_WALKERS = 3;
 
 interface WalkerState {
   agentId: string;
@@ -440,9 +443,16 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
   const coffeeElRef = useRef<HTMLDivElement | null>(null);
   const fridgeElRef = useRef<HTMLDivElement | null>(null);
   const chillElRef = useRef<HTMLDivElement | null>(null);
-  const [walker, setWalker] = useState<WalkerState | null>(null);
-  const walkerRef = useRef<WalkerState | null>(null);
-  walkerRef.current = walker;
+  // Der (aktuell leere) "Kundenprojekte"-Bereich dient als reale, gemessene
+  // Flaeche fuer freies Umherlaufen ("wander") - kein geratener/fixer Pfad,
+  // sondern ein zufaelliger Punkt innerhalb eines echten DOM-Rechtecks.
+  const wanderAreaElRef = useRef<HTMLDivElement | null>(null);
+  // Mehrere gleichzeitige Laeufer statt einem einzelnen - "sie muessen nicht
+  // standardmaessig am Platz sein", jede real IDLE Person kann unabhaengig
+  // unterwegs sein.
+  const [walkers, setWalkers] = useState<Map<string, WalkerState>>(new Map());
+  const walkersRef = useRef<Map<string, WalkerState>>(walkers);
+  walkersRef.current = walkers;
   // In einem Ref statt direkt aus dem Closure gelesen, damit der unten
   // laufende setInterval() immer die aktuellen, live per React Query
   // aktualisierten Agenten-Daten sieht, ohne den Timer bei jedem Re-Render
@@ -463,13 +473,17 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
   const registerChillRef = useCallback((el: HTMLDivElement | null) => {
     chillElRef.current = el;
   }, []);
+  const registerWanderAreaRef = useCallback((el: HTMLDivElement | null) => {
+    wanderAreaElRef.current = el;
+  }, []);
 
-  // Periodisch: eine echte, aktuell IDLE Person macht Pause an einem von
-  // drei Zielen (Kaffee/Kuehlschrank/Chill Area, zufaellig gewaehlt) - Weg
-  // wird live aus den tatsaechlichen Bildschirmpositionen berechnet. Die
-  // Ref-Zuordnung lebt bewusst INNERHALB des Effekts (kein externes
-  // Dependency-Problem) - die Refs selbst sind stabil, nur ihr .current
-  // aendert sich.
+  // Periodisch: bis zu MAX_CONCURRENT_WALKERS real IDLE Personen sind
+  // gleichzeitig unterwegs (Kaffee/Kuehlschrank/Chill Area/freies
+  // Umherlaufen, zufaellig gewaehlt) statt nacheinander eine einzelne Person
+  // - "sie muessen nicht standardmaessig am Platz sein". Weg wird live aus
+  // den tatsaechlichen Bildschirmpositionen berechnet. Die Ref-Zuordnung
+  // lebt bewusst INNERHALB des Effekts (kein externes Dependency-Problem) -
+  // die Refs selbst sind stabil, nur ihr .current aendert sich.
   useEffect(() => {
     // setInterval()-Rueckgabewerte von Callback-Funktionen werden vom
     // Browser NIE aufgerufen - anders als bei useEffect()-Cleanups muss die
@@ -479,28 +493,59 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
     const schedule = (fn: () => void, ms: number) => {
       pendingTimeouts.push(setTimeout(fn, ms));
     };
+    const updateWalker = (agentId: string, updater: (w: WalkerState) => WalkerState | null) => {
+      setWalkers((prev) => {
+        const existing = prev.get(agentId);
+        if (!existing) return prev;
+        const next = updater(existing);
+        const copy = new Map(prev);
+        if (next) copy.set(agentId, next);
+        else copy.delete(agentId);
+        return copy;
+      });
+    };
 
     const interval = setInterval(() => {
-      if (walkerRef.current) return;
-      const idleCandidates = withColorRef.current.filter((x) => x.agent.status === "IDLE" && deskElsRef.current.has(x.agent.rule.id));
-      if (idleCandidates.length === 0 || !containerRef.current) return;
-      const destinationRefs: Record<WalkDestination, HTMLDivElement | null> = {
+      if (!containerRef.current) return;
+      const current = walkersRef.current;
+      if (current.size >= MAX_CONCURRENT_WALKERS) return;
+      // Nicht bei jeder Gelegenheit sofort jemanden losschicken - staffelt
+      // die Starts natuerlicher, statt dass immer alle auf einmal aufstehen.
+      if (Math.random() > 0.6) return;
+      const idleCandidates = withColorRef.current.filter((x) => x.agent.status === "IDLE" && deskElsRef.current.has(x.agent.rule.id) && !current.has(x.agent.rule.id));
+      if (idleCandidates.length === 0) return;
+
+      const destinationRefs: Record<Exclude<WalkDestination, "wander">, HTMLDivElement | null> = {
         coffee: coffeeElRef.current,
         fridge: fridgeElRef.current,
         chill: chillElRef.current,
       };
-      const destinations: WalkDestination[] = ["coffee", "fridge", "chill"];
+      const destinations: WalkDestination[] = ["coffee", "fridge", "chill", "wander", "wander"];
       const destination = destinations[Math.floor(Math.random() * destinations.length)]!;
-      const destinationEl = destinationRefs[destination];
-      if (!destinationEl) return;
       const pick = idleCandidates[Math.floor(Math.random() * idleCandidates.length)]!;
       const agentId = pick.agent.rule.id;
       const deskEl = deskElsRef.current.get(agentId)!;
       const containerRect = containerRef.current.getBoundingClientRect();
       const deskRect = deskEl.getBoundingClientRect();
-      const destRect = destinationEl.getBoundingClientRect();
       const from = { x: deskRect.left + deskRect.width / 2 - containerRect.left, y: deskRect.bottom - containerRect.top - 10 };
-      const to = { x: destRect.left + destRect.width / 2 - containerRect.left, y: destRect.bottom - containerRect.top - 14 };
+
+      let to: { x: number; y: number };
+      if (destination === "wander") {
+        // Freies Umherlaufen: ein echter, zufaelliger Punkt innerhalb des
+        // (aktuell leeren) Kundenprojekte-Bereichs - real gemessen, kein
+        // erfundener/fixer Pfad.
+        const areaEl = wanderAreaElRef.current;
+        if (!areaEl) return;
+        const areaRect = areaEl.getBoundingClientRect();
+        const tx = areaRect.left + 30 + Math.random() * Math.max(20, areaRect.width - 60);
+        const ty = areaRect.top + 30 + Math.random() * Math.max(20, areaRect.height - 50);
+        to = { x: tx - containerRect.left, y: ty - containerRect.top };
+      } else {
+        const destinationEl = destinationRefs[destination];
+        if (!destinationEl) return;
+        const destRect = destinationEl.getBoundingClientRect();
+        to = { x: destRect.left + destRect.width / 2 - containerRect.left, y: destRect.bottom - containerRect.top - 14 };
+      }
 
       // Hinweg mit "pos" noch auf "from" mounten (kein Sprung beim ersten
       // Render), dann im naechsten Frame "pos" auf "to" umstellen - das
@@ -509,10 +554,14 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
       // (vorher sprang "walking" auf false GENAU in dem Moment, in dem die
       // Transition ueberhaupt erst begann - daher froren Beine/Arme ein,
       // waehrend sich die Figur noch sichtbar bewegte).
-      setWalker({ agentId, color: pick.color, destination, from, to, pos: from, walking: true, atDestination: false });
+      setWalkers((prev) => {
+        const copy = new Map(prev);
+        copy.set(agentId, { agentId, color: pick.color, destination, from, to, pos: from, walking: true, atDestination: false });
+        return copy;
+      });
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          setWalker((w) => (w && w.agentId === agentId ? { ...w, pos: w.to } : w));
+          updateWalker(agentId, (w) => ({ ...w, pos: w.to }));
         });
       });
 
@@ -520,10 +569,10 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
       // festen, kurzen ~2.8s-Fensters - wie lange genau ist laut Nutzer egal,
       // Hauptsache nicht mechanisch kurz.
       const stayMs = 6000 + Math.random() * 14000;
-      schedule(() => setWalker((w) => (w && w.agentId === agentId ? { ...w, walking: false, atDestination: true } : w)), WALK_MS);
-      schedule(() => setWalker((w) => (w && w.agentId === agentId ? { ...w, pos: w.from, walking: true, atDestination: false } : w)), WALK_MS + stayMs);
-      schedule(() => setWalker((w) => (w && w.agentId === agentId ? null : w)), WALK_MS + stayMs + WALK_MS);
-    }, 9000);
+      schedule(() => updateWalker(agentId, (w) => ({ ...w, walking: false, atDestination: true })), WALK_MS);
+      schedule(() => updateWalker(agentId, (w) => ({ ...w, pos: w.from, walking: true, atDestination: false })), WALK_MS + stayMs);
+      schedule(() => updateWalker(agentId, () => null), WALK_MS + stayMs + WALK_MS);
+    }, 4000);
 
     return () => {
       clearInterval(interval);
@@ -531,8 +580,9 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
     };
   }, []);
 
-  const walkerPos = walker?.pos ?? null;
-  const fridgeOpen = walker?.destination === "fridge" && walker.atDestination;
+  const activeWalkers = Array.from(walkers.values());
+  const awayAgentIds = new Set(activeWalkers.map((w) => w.agentId));
+  const fridgeOpen = activeWalkers.some((w) => w.destination === "fridge" && w.atDestination);
 
   return (
     <Box
@@ -632,16 +682,19 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
         <Box sx={{ mb: 1 }}>
           <Box sx={{ fontSize: "0.8rem", fontWeight: 800, color: "#4a3d2a", mb: 1.5, pl: 0.5 }}>🏠 Meine Projekte</Box>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            <OfficeZone title="Apps" agents={ownApps} accentColor="#3b82f6" awayAgentId={walker?.agentId ?? null} onSelectAgent={onSelectAgent} registerDeskRef={registerDeskRef} emptyLabel="Keine aktiven Automation Rules für App-Projekte" />
-            <OfficeZone title="Webseiten" agents={ownWebsites} accentColor="#14b8a6" awayAgentId={walker?.agentId ?? null} onSelectAgent={onSelectAgent} registerDeskRef={registerDeskRef} emptyLabel="Keine aktiven Automation Rules für Webseiten-Projekte" />
+            <OfficeZone title="Apps" agents={ownApps} accentColor="#3b82f6" awayAgentIds={awayAgentIds} onSelectAgent={onSelectAgent} registerDeskRef={registerDeskRef} emptyLabel="Keine aktiven Automation Rules für App-Projekte" />
+            <OfficeZone title="Webseiten" agents={ownWebsites} accentColor="#14b8a6" awayAgentIds={awayAgentIds} onSelectAgent={onSelectAgent} registerDeskRef={registerDeskRef} emptyLabel="Keine aktiven Automation Rules für Webseiten-Projekte" />
           </Box>
         </Box>
 
-        <Box sx={{ mt: 3 }}>
+        {/* Kundenprojekte-Bereich dient zugleich als reale Flaeche fuer
+            freies Umherlaufen (registerWanderAreaRef) - bleibt ehrlich leer
+            statt erfundener Daten, ist aber ein echter, gemessener Bereich. */}
+        <Box ref={registerWanderAreaRef} sx={{ mt: 3 }}>
           <Box sx={{ fontSize: "0.8rem", fontWeight: 800, color: "#4a3d2a", mb: 1.5, pl: 0.5 }}>💼 Kundenprojekte</Box>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            <OfficeZone title="Apps" agents={[]} accentColor="#9ca3af" awayAgentId={null} onSelectAgent={onSelectAgent} registerDeskRef={registerDeskRef} emptyLabel="Noch keine Kundenprojekte hinterlegt" />
-            <OfficeZone title="Webseiten" agents={[]} accentColor="#9ca3af" awayAgentId={null} onSelectAgent={onSelectAgent} registerDeskRef={registerDeskRef} emptyLabel="Noch keine Kundenprojekte hinterlegt" />
+            <OfficeZone title="Apps" agents={[]} accentColor="#9ca3af" awayAgentIds={awayAgentIds} onSelectAgent={onSelectAgent} registerDeskRef={registerDeskRef} emptyLabel="Noch keine Kundenprojekte hinterlegt" />
+            <OfficeZone title="Webseiten" agents={[]} accentColor="#9ca3af" awayAgentIds={awayAgentIds} onSelectAgent={onSelectAgent} registerDeskRef={registerDeskRef} emptyLabel="Noch keine Kundenprojekte hinterlegt" />
           </Box>
         </Box>
 
@@ -651,25 +704,26 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
         </Box>
       </Box>
 
-      {/* Der laufende Charakter - echte, gemessene Start-/Zielposition, mit
-          echtem Gang-Zyklus waehrend der Bewegung. Am Ziel angekommen haelt
-          sie/er kurz das zum Ziel passende Item (Kaffee/Snack aus dem
-          Kuehlschrank), oder legt sich in der Chill Area tatsaechlich auf
-          die Couch statt nur davorzustehen. */}
-      {walker && walkerPos ? (
+      {/* Die laufenden Charaktere - echte, gemessene Start-/Zielposition, mit
+          echtem Gang-Zyklus waehrend der Bewegung. Mehrere koennen
+          gleichzeitig unterwegs sein. Am Ziel angekommen haelt die Person
+          kurz das zum Ziel passende Item (Kaffee/Snack aus dem
+          Kuehlschrank), legt sich in der Chill Area tatsaechlich auf die
+          Couch, oder steht beim freien Umherlaufen einfach nur da. */}
+      {activeWalkers.map((walker) =>
         walker.atDestination && walker.destination === "chill" ? (
-          <Box sx={{ position: "absolute", left: walkerPos.x, top: walkerPos.y, transform: "translate(-52%, -32px)", transition: `left ${WALK_MS}ms ease-in-out, top ${WALK_MS}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
+          <Box key={walker.agentId} sx={{ position: "absolute", left: walker.pos.x, top: walker.pos.y, transform: "translate(-52%, -32px)", transition: `left ${WALK_MS}ms ease-in-out, top ${WALK_MS}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
             <OfficeLyingCharacter color={walker.color} />
           </Box>
         ) : (
-          <Box sx={{ position: "absolute", left: walkerPos.x, top: walkerPos.y, transform: "translate(-50%, -100%)", transition: `left ${WALK_MS}ms ease-in-out, top ${WALK_MS}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
-            {walker.atDestination ? (
+          <Box key={walker.agentId} sx={{ position: "absolute", left: walker.pos.x, top: walker.pos.y, transform: "translate(-50%, -100%)", transition: `left ${WALK_MS}ms ease-in-out, top ${WALK_MS}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
+            {walker.atDestination && DESTINATION_ITEM[walker.destination] ? (
               <Box sx={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", fontSize: 18 }}>{DESTINATION_ITEM[walker.destination]}</Box>
             ) : null}
             <OfficeCharacter status="IDLE" walking={walker.walking} color={walker.color} label="Pause" onClick={() => undefined} tooltip="Pause" />
           </Box>
-        )
-      ) : null}
+        ),
+      )}
     </Box>
   );
 });
