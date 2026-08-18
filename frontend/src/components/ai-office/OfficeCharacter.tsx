@@ -120,43 +120,38 @@ export const OfficeCharacter = memo(function OfficeCharacter({ status, color, la
           {/* Schuhe */}
           <rect x="14.5" y="72" width="10" height="5" rx="2" fill="#1c2128" style={walking ? { transformOrigin: "20px 58px", animation: "office-leg-fwd 0.4s ease-in-out infinite" } : undefined} />
           <rect x="26.5" y="72" width="10" height="5" rx="2" fill="#1c2128" style={walking ? { transformOrigin: "32px 58px", animation: "office-leg-back 0.4s ease-in-out infinite" } : undefined} />
-          {/* Koerper/Pullover */}
-          <path d="M13 34 Q13 26 26 26 Q39 26 39 34 L40 62 Q26 66 12 62 Z" fill={color} />
-          {/* Kragen */}
-          <path d="M20 27 L26 33 L32 27" stroke="#ffffff55" strokeWidth="2" fill="none" strokeLinecap="round" />
+          {/* Koerper: schlichter, blockiger Torso statt Pullover-Silhouette -
+              Video-Referenz zeigt eine einfache, low-poly "Chibi"-Figur ohne
+              Kragen/Taille, kein sichtbarer Hals (Kopf sitzt direkt auf den
+              Schultern). */}
+          <rect x="12" y="28" width="28" height="30" rx="9" fill={color} />
           {/* Arme */}
-          <rect x="5" y="33" width="9" height="22" rx="4.5" fill={color} style={walking ? { transformOrigin: "9.5px 34px", animation: "office-arm-back 0.4s ease-in-out infinite" } : undefined} />
-          <rect x="38" y="33" width="9" height="22" rx="4.5" fill={color} style={walking ? { transformOrigin: "42.5px 34px", animation: "office-arm-fwd 0.4s ease-in-out infinite" } : undefined} />
-          <circle cx="9.5" cy="54" r="4" fill={skin} />
-          <circle cx="42.5" cy="54" r="4" fill={skin} />
-          {/* Hals */}
-          <rect x="22" y="20" width="8" height="8" fill={skin} />
-          {/* Kopf */}
-          <circle cx="26" cy="14" r="13" fill={skin} />
-          {/* Ohren */}
-          <circle cx="13.5" cy="14" r="2.4" fill={skin} />
-          <circle cx="38.5" cy="14" r="2.4" fill={skin} />
-          {/* Haare */}
-          <path d="M13 13 a13 13 0 0 1 26 0 v-1.5 Q26 -1 13 11.5 Z" fill={hair} />
-          <path d="M13 13 Q13 3 26 3 Q39 3 39 13 L38 9 Q26 4 14 9 Z" fill={hair} />
+          <rect x="4" y="30" width="9" height="24" rx="4.5" fill={color} style={walking ? { transformOrigin: "8.5px 31px", animation: "office-arm-back 0.4s ease-in-out infinite" } : undefined} />
+          <rect x="39" y="30" width="9" height="24" rx="4.5" fill={color} style={walking ? { transformOrigin: "43.5px 31px", animation: "office-arm-fwd 0.4s ease-in-out infinite" } : undefined} />
+          <circle cx="8.5" cy="54" r="4" fill={skin} />
+          <circle cx="43.5" cy="54" r="4" fill={skin} />
+          {/* Kopf: groesser/rundlicher (Chibi-Proportion) */}
+          <circle cx="26" cy="17" r="15" fill={skin} />
+          {/* Haare: eine flache "Kappen"-Form statt mehrschichtiger Straehnen */}
+          <ellipse cx="26" cy="12" rx="15" ry="12" fill={hair} />
           {/* Gesicht */}
           {isIdle ? (
             <>
-              <path d="M19 15 q3 -2.4 6 0" stroke="#3b2a1a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-              <path d="M29 15 q3 -2.4 6 0" stroke="#3b2a1a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-              <path d="M22 21 q4 2 8 0" stroke="#8a5a3b" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+              <path d="M19 20 q3 -2 6 0" stroke="#3b2a1a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+              <path d="M27 20 q3 -2 6 0" stroke="#3b2a1a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+              <path d="M22 25 q4 1.6 8 0" stroke="#8a5a3b" strokeWidth="1.4" fill="none" strokeLinecap="round" />
             </>
           ) : isBlocked ? (
             <>
-              <path d="M19 13.5 L25 16.5" stroke="#3b2a1a" strokeWidth="1.6" strokeLinecap="round" />
-              <path d="M33 13.5 L27 16.5" stroke="#3b2a1a" strokeWidth="1.6" strokeLinecap="round" />
-              <path d="M21 22 q5 -2.5 10 0" stroke="#8a3b2a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+              <path d="M19 18.5 L24 21" stroke="#3b2a1a" strokeWidth="1.6" strokeLinecap="round" />
+              <path d="M33 18.5 L28 21" stroke="#3b2a1a" strokeWidth="1.6" strokeLinecap="round" />
+              <path d="M21 26 q5 -2 10 0" stroke="#8a3b2a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
             </>
           ) : (
             <>
-              <circle cx="21.5" cy="14.5" r="1.6" fill="#241a10" />
-              <circle cx="30.5" cy="14.5" r="1.6" fill="#241a10" />
-              <path d={isCompleted || isWorking ? "M21 20 q5 3.2 10 0" : "M21 21 q5 1.6 10 0"} stroke="#8a5a3b" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+              <circle cx="20.5" cy="19.5" r="1.7" fill="#241a10" />
+              <circle cx="31.5" cy="19.5" r="1.7" fill="#241a10" />
+              <path d={isCompleted || isWorking ? "M21 25 q5 3 10 0" : "M21 25.5 q5 1.4 10 0"} stroke="#8a5a3b" strokeWidth="1.5" fill="none" strokeLinecap="round" />
             </>
           )}
         </Box>
