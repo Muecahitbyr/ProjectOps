@@ -300,9 +300,11 @@ const OfficeChillArea = memo(function OfficeChillArea({ chillRef }: { chillRef: 
 
 // Liegende Figur fuer die Chill Area - eigene, einfache Silhouette statt
 // einer gedrehten OfficeCharacter (deren Gliedmassen/Pivots auf die
-// stehende Pose zugeschnitten sind). Beine am vorderen Ende der Couch,
-// Kopf mit Haar-Kappe am hinteren Ende, dieselbe Projekt-Farbe wie am
-// Schreibtisch.
+// stehende Pose zugeschnitten sind). Kopf liegt am linken Ende auf dem
+// Akzent-Kissen der Couch (das dort tatsaechlich positioniert ist - Kopf
+// woanders hinzulegen ergaebe keinen Sinn), Beine haengen rechts ueber die
+// Armlehne. Gesicht (entspannte geschlossene Augen + kleines Laecheln)
+// passend zum "Pause"-Zustand.
 function OfficeLyingCharacter({ color }: { color: string }) {
   const skin = "#e8b48a";
   const hair = "#3b2a1a";
@@ -311,7 +313,7 @@ function OfficeLyingCharacter({ color }: { color: string }) {
       sx={{
         position: "relative",
         width: 66,
-        height: 28,
+        height: 30,
         animation: "office-lying-breathe 3.2s ease-in-out infinite",
         "@keyframes office-lying-breathe": { "0%,100%": { transform: "scaleX(1)" }, "50%": { transform: "scaleX(0.985)" } },
       }}
@@ -319,8 +321,8 @@ function OfficeLyingCharacter({ color }: { color: string }) {
       <Box
         sx={{
           position: "absolute",
-          top: -16,
-          left: 4,
+          top: -14,
+          left: -2,
           fontSize: 14,
           animation: "office-char-zzz 2.4s ease-in-out infinite",
           "@keyframes office-char-zzz": { "0%,100%": { opacity: 0.3, transform: "translateY(0)" }, "50%": { opacity: 1, transform: "translateY(-4px)" } },
@@ -328,13 +330,19 @@ function OfficeLyingCharacter({ color }: { color: string }) {
       >
         💤
       </Box>
-      {/* Beine - angewinkelt am vorderen Ende der Liegeflaeche */}
-      <Box sx={{ position: "absolute", bottom: 1, left: 0, width: 15, height: 7, borderRadius: 3, backgroundColor: "#2b333f" }} />
-      {/* Koerper liegend */}
-      <Box sx={{ position: "absolute", bottom: 5, left: 11, width: 32, height: 14, borderRadius: 7, backgroundColor: color }} />
-      {/* Kopf am hinteren Ende, mit derselben Haar-Kappe wie im Stehen */}
-      <Box sx={{ position: "absolute", bottom: 2, right: 0, width: 23, height: 23, borderRadius: "50%", backgroundColor: skin }} />
-      <Box sx={{ position: "absolute", bottom: 12, right: -1, width: 25, height: 15, borderRadius: "50% 50% 45% 45%", backgroundColor: hair }} />
+      <Box component="svg" viewBox="0 0 66 30" sx={{ width: 66, height: 30, display: "block" }}>
+        {/* Beine - jetzt am rechten Ende (weg vom Kissen) */}
+        <rect x="51" y="19" width="15" height="7" rx="3" fill="#2b333f" />
+        {/* Koerper liegend */}
+        <rect x="23" y="12" width="32" height="14" rx="7" fill={color} />
+        {/* Kopf am linken Ende, dort wo das Kissen der Couch liegt */}
+        <circle cx="12" cy="16" r="12" fill={skin} />
+        <ellipse cx="12" cy="9" rx="12" ry="6.5" fill={hair} />
+        {/* Gesicht: entspannte geschlossene Augen + kleines Laecheln */}
+        <path d="M5.5 18 q2.5 -2 5 0" stroke="#3b2a1a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+        <path d="M13.5 18 q2.5 -2 5 0" stroke="#3b2a1a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+        <path d="M7.5 22.5 q4.5 1.8 9 0" stroke="#8a5a3b" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+      </Box>
     </Box>
   );
 }

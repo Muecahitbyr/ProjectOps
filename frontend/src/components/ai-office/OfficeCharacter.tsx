@@ -132,26 +132,29 @@ export const OfficeCharacter = memo(function OfficeCharacter({ status, color, la
           <circle cx="43.5" cy="54" r="4" fill={skin} />
           {/* Kopf: groesser/rundlicher (Chibi-Proportion) */}
           <circle cx="26" cy="17" r="15" fill={skin} />
-          {/* Haare: eine flache "Kappen"-Form statt mehrschichtiger Straehnen */}
-          <ellipse cx="26" cy="12" rx="15" ry="12" fill={hair} />
-          {/* Gesicht */}
+          {/* Haare: nur die obere Kappe, damit darunter genug Gesicht frei
+              bleibt (vorher deckte die Haar-Ellipse fast den ganzen Kopf ab -
+              die Augen/der Mund waren dadurch praktisch unsichtbar). */}
+          <ellipse cx="26" cy="8" rx="15" ry="7" fill={hair} />
+          {/* Gesicht - Augen/Mund vergroessert, damit sie bei der kleinen
+              Renderroesse noch klar erkennbar sind. */}
           {isIdle ? (
             <>
-              <path d="M19 20 q3 -2 6 0" stroke="#3b2a1a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-              <path d="M27 20 q3 -2 6 0" stroke="#3b2a1a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-              <path d="M22 25 q4 1.6 8 0" stroke="#8a5a3b" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+              <path d="M18 20 q3.5 -2.4 7 0" stroke="#3b2a1a" strokeWidth="2" fill="none" strokeLinecap="round" />
+              <path d="M27 20 q3.5 -2.4 7 0" stroke="#3b2a1a" strokeWidth="2" fill="none" strokeLinecap="round" />
+              <path d="M21 25.5 q5 2 10 0" stroke="#8a5a3b" strokeWidth="1.7" fill="none" strokeLinecap="round" />
             </>
           ) : isBlocked ? (
             <>
-              <path d="M19 18.5 L24 21" stroke="#3b2a1a" strokeWidth="1.6" strokeLinecap="round" />
-              <path d="M33 18.5 L28 21" stroke="#3b2a1a" strokeWidth="1.6" strokeLinecap="round" />
-              <path d="M21 26 q5 -2 10 0" stroke="#8a3b2a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+              <path d="M18 18 L24.5 21" stroke="#3b2a1a" strokeWidth="2" strokeLinecap="round" />
+              <path d="M34 18 L27.5 21" stroke="#3b2a1a" strokeWidth="2" strokeLinecap="round" />
+              <path d="M20.5 26.5 q5.5 -2.4 11 0" stroke="#8a3b2a" strokeWidth="2" fill="none" strokeLinecap="round" />
             </>
           ) : (
             <>
-              <circle cx="20.5" cy="19.5" r="1.7" fill="#241a10" />
-              <circle cx="31.5" cy="19.5" r="1.7" fill="#241a10" />
-              <path d={isCompleted || isWorking ? "M21 25 q5 3 10 0" : "M21 25.5 q5 1.4 10 0"} stroke="#8a5a3b" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+              <circle cx="20" cy="19.5" r="2.3" fill="#241a10" />
+              <circle cx="32" cy="19.5" r="2.3" fill="#241a10" />
+              <path d={isCompleted || isWorking ? "M20.5 25.5 q5.5 3.4 11 0" : "M20.5 26 q5.5 1.6 11 0"} stroke="#8a5a3b" strokeWidth="1.8" fill="none" strokeLinecap="round" />
             </>
           )}
         </Box>
