@@ -39,17 +39,24 @@ const OfficeDesk = memo(function OfficeDesk({ agent, color, away, onSelectAgent,
   return (
     <Box ref={deskRef} sx={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", width: 74 }}>
       {speech && !away ? (
-        <Box sx={{ position: "absolute", bottom: "100%", mb: 0.5, maxWidth: 130, backgroundColor: "#fff", color: "#2a2a2a", borderRadius: "10px 10px 10px 2px", px: 1, py: 0.5, boxShadow: "0 2px 6px rgba(0,0,0,0.18)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", zIndex: 4 }}>
-          <Box sx={{ fontSize: "0.6rem", fontWeight: 600 }}>{speech}</Box>
+        <Box sx={{ position: "absolute", bottom: "100%", mb: 0.5, maxWidth: 130, zIndex: 4 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.6, backgroundColor: "#fff", color: "#2a2a2a", borderRadius: "10px 10px 10px 2px", px: 1, py: 0.5, boxShadow: "0 2px 6px rgba(0,0,0,0.18)", whiteSpace: "nowrap", overflow: "hidden" }}>
+            <Box sx={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: isBlocked ? "#e5533d" : color, flexShrink: 0 }} />
+            <Box sx={{ fontSize: "0.6rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}>{speech}</Box>
+          </Box>
+          {/* Akzent-Balken unter der Blase nur bei BLOCKED - echtes
+              Dringlichkeits-Signal, keine erfundene Prioritaet fuer andere
+              Zustaende. */}
+          {isBlocked ? <Box sx={{ height: 2.5, borderRadius: 2, mt: "2px", mx: 0.5, backgroundColor: "#e5533d" }} /> : null}
         </Box>
       ) : null}
 
       {isBlocked && !away ? (
         <>
-          <Box sx={{ position: "absolute", bottom: 26, fontSize: 22, zIndex: 3, animation: "office-fire-flicker 0.6s ease-in-out infinite alternate", filter: "drop-shadow(0 0 10px rgba(255,120,20,0.85))", "@keyframes office-fire-flicker": { from: { transform: "scale(1) translateY(0) rotate(-3deg)", opacity: 0.9 }, to: { transform: "scale(1.15) translateY(-3px) rotate(3deg)", opacity: 1 } } }}>
+          <Box sx={{ position: "absolute", bottom: 42, fontSize: 22, zIndex: 3, animation: "office-fire-flicker 0.6s ease-in-out infinite alternate", filter: "drop-shadow(0 0 10px rgba(255,120,20,0.85))", "@keyframes office-fire-flicker": { from: { transform: "scale(1) translateY(0) rotate(-3deg)", opacity: 0.9 }, to: { transform: "scale(1.15) translateY(-3px) rotate(3deg)", opacity: 1 } } }}>
             🔥
           </Box>
-          <Box sx={{ position: "absolute", bottom: 46, left: "62%", fontSize: 13, opacity: 0.5, zIndex: 3, animation: "office-smoke-rise 2s ease-in infinite", "@keyframes office-smoke-rise": { "0%": { transform: "translateY(0) scale(0.7)", opacity: 0.5 }, "100%": { transform: "translateY(-22px) scale(1.3)", opacity: 0 } } }}>
+          <Box sx={{ position: "absolute", bottom: 62, left: "62%", fontSize: 13, opacity: 0.5, zIndex: 3, animation: "office-smoke-rise 2s ease-in infinite", "@keyframes office-smoke-rise": { "0%": { transform: "translateY(0) scale(0.7)", opacity: 0.5 }, "100%": { transform: "translateY(-22px) scale(1.3)", opacity: 0 } } }}>
             💨
           </Box>
         </>
@@ -76,22 +83,33 @@ const OfficeDesk = memo(function OfficeDesk({ agent, color, away, onSelectAgent,
         />
       )}
 
-      {/* Schreibtisch: Tischplatte + Vorderkante + Beine + MacBook */}
+      {/* Schreibtisch: cremeweisses Podest + Monitor-Pfosten mit Mini-Chart
+          statt Holzton-Tisch + MacBook (Video-Referenz: "KI-Büro"-Style von
+          ki.laurin) + echtes (gekuerztes) Regel-Label darunter statt einer
+          erfundenen Abteilung. Monitor haengt absolut ueber dem Podest, damit
+          die bewaehrte Character-Podest-Ausrichtung (mt: -0.5) unveraendert
+          bleibt. */}
       <Tooltip title={AGENT_STATUS_LABEL[agent.status]} enterDelay={400}>
         <Box onClick={() => onSelectAgent(agent)} sx={{ position: "relative", mt: -0.5, cursor: "pointer" }}>
-          <Box sx={{ width: 58, height: 18, borderRadius: "4px", backgroundColor: isBlocked && !away ? "#c65f3f" : "#c8a36b", boxShadow: isBlocked && !away ? "0 4px 12px rgba(220,80,30,0.55)" : "0 4px 8px rgba(0,0,0,0.2)", display: "flex", alignItems: "flex-end", justifyContent: "center", pb: 0.4 }}>
-            {/* MacBook: Basis (Tastaturteil) + aufgeklappter Bildschirm */}
-            <Box sx={{ position: "relative", width: 20, height: 3, borderRadius: "1px", backgroundColor: "#c7c9cc" }}>
-              <Box sx={{ position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)", width: 17, height: 11, borderRadius: "1px 1px 0 0", backgroundColor: "#2b2d31", border: "1px solid #47494e" }}>
-                <Box sx={{ position: "absolute", inset: 1.2, backgroundColor: color, opacity: 0.55, borderRadius: "1px" }} />
-              </Box>
+          <Box sx={{ position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)", mb: "2px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <Box sx={{ width: 17, height: 12, borderRadius: "2px", backgroundColor: isBlocked && !away ? "#5c261b" : "#2b2d31", border: "1px solid #47494e", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "1.5px", p: "2px" }}>
+              {[4, 7, 5].map((h, i) => (
+                <Box key={i} sx={{ width: 2, height: h, backgroundColor: isBlocked && !away ? "#e5533d" : color, opacity: 0.9, borderRadius: "0.5px" }} />
+              ))}
             </Box>
+            <Box sx={{ width: 2, height: 6, backgroundColor: "#9aa1a8" }} />
           </Box>
-          <Box sx={{ width: 58, height: 5, backgroundColor: isBlocked && !away ? "#a3492f" : "#a8804a", borderRadius: "0 0 3px 3px" }} />
-          <Box sx={{ position: "absolute", bottom: -8, left: 5, width: 3, height: 8, backgroundColor: "#8a6c3f" }} />
-          <Box sx={{ position: "absolute", bottom: -8, right: 5, width: 3, height: 8, backgroundColor: "#8a6c3f" }} />
+          {/* Podest (Draufsicht) */}
+          <Box sx={{ width: 58, height: 15, borderRadius: "7px", backgroundColor: isBlocked && !away ? "#f0cdbd" : "#f7f3ea", border: "1px solid rgba(0,0,0,0.06)", boxShadow: isBlocked && !away ? "0 4px 14px rgba(220,80,30,0.4)" : "0 3px 8px rgba(0,0,0,0.14)" }} />
+          <Box sx={{ position: "absolute", bottom: -8, left: 5, width: 2.5, height: 8, backgroundColor: "#9aa1a8" }} />
+          <Box sx={{ position: "absolute", bottom: -8, right: 5, width: 2.5, height: 8, backgroundColor: "#9aa1a8" }} />
         </Box>
       </Tooltip>
+
+      {/* Echtes (gekuerztes) Label statt einer erfundenen Abteilung */}
+      <Box sx={{ mt: 0.75, fontSize: "0.5rem", fontWeight: 700, letterSpacing: "0.04em", color: "#8b7d68", textTransform: "uppercase", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 70, textAlign: "center" }}>
+        {agent.rule.name}
+      </Box>
     </Box>
   );
 });
@@ -236,15 +254,13 @@ const OfficeChillArea = memo(function OfficeChillArea({ chillRef }: { chillRef: 
         🛋️ Chill Area
       </Box>
       <Box ref={chillRef} sx={{ position: "relative", height: 128, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.32)", border: "1px dashed rgba(139,115,85,0.25)", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 2, pb: 1.5 }}>
-        {/* Couch */}
-        <Box sx={{ position: "relative", width: 80, height: 28 }}>
-          <Box sx={{ position: "absolute", bottom: 0, width: "100%", height: 18, borderRadius: "7px", backgroundColor: "#7a8fa6" }} />
-          <Box sx={{ position: "absolute", bottom: 11, width: "100%", height: 15, borderRadius: "7px 7px 3px 3px", backgroundColor: "#8fa3b8" }} />
-          {[5, 27, 49].map((left) => (
-            <Box key={left} sx={{ position: "absolute", bottom: 13, left, width: 19, height: 11, borderRadius: "4px", backgroundColor: "#a6b8c9" }} />
-          ))}
-          <Box sx={{ position: "absolute", bottom: -5, left: 3, width: 4, height: 6, backgroundColor: "#5c6b7a", borderRadius: 1 }} />
-          <Box sx={{ position: "absolute", bottom: -5, right: 3, width: 4, height: 6, backgroundColor: "#5c6b7a", borderRadius: 1 }} />
+        {/* Couch - schlichter, flacher Stil (Video-Referenz): ein Sitzkissen
+            in Akzentfarbe auf dunkelgrauer Basis statt mehrerer Einzelpolster. */}
+        <Box sx={{ position: "relative", width: 74, height: 24 }}>
+          <Box sx={{ position: "absolute", bottom: 0, width: "100%", height: 20, borderRadius: "8px", backgroundColor: "#4a4f57" }} />
+          <Box sx={{ position: "absolute", bottom: 12, left: 8, width: 22, height: 12, borderRadius: "4px", backgroundColor: "#e08a4f" }} />
+          <Box sx={{ position: "absolute", bottom: -5, left: 3, width: 4, height: 6, backgroundColor: "#33373d", borderRadius: 1 }} />
+          <Box sx={{ position: "absolute", bottom: -5, right: 3, width: 4, height: 6, backgroundColor: "#33373d", borderRadius: 1 }} />
         </Box>
 
         {/* Shisha auf kleinem Tisch */}
@@ -487,14 +503,19 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
       <Box sx={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-95px)", width: 2, height: 30, backgroundColor: "#c9b896" }} />
       <Box sx={{ position: "absolute", top: 28, left: "50%", transform: "translateX(-116px)", width: 42, height: 20, borderRadius: "50% 50% 0 0", backgroundColor: "#f0e4c8", border: "1px solid #c9b896", boxShadow: "0 0 24px 6px rgba(255,224,150,0.35)", animation: "office-lamp-glow 3s ease-in-out infinite", "@keyframes office-lamp-glow": { "0%,100%": { boxShadow: "0 0 24px 6px rgba(255,224,150,0.25)" }, "50%": { boxShadow: "0 0 30px 10px rgba(255,224,150,0.5)" } } }} />
 
-      {/* Regal (Deko) */}
+      {/* Whiteboard mit Klebezetteln + Trendlinie statt Regal (Video-Referenz)
+          - rein dekorativ/abstrakt, keine erfundenen Zahlen oder Texte. */}
       <Box sx={{ position: "absolute", top: 20, left: "50%", transform: "translateX(-190px)", display: { xs: "none", md: "block" } }}>
-        <Box sx={{ width: 70, height: 46, border: "3px solid #a8804a", borderRadius: 1, position: "relative", backgroundColor: "rgba(200,163,107,0.15)" }}>
-          <Box sx={{ position: "absolute", top: "50%", left: 0, right: 0, height: 3, backgroundColor: "#a8804a" }} />
-          <Box sx={{ position: "absolute", top: 4, left: 6, width: 6, height: 16, backgroundColor: "#e8927a" }} />
-          <Box sx={{ position: "absolute", top: 4, left: 14, width: 6, height: 14, backgroundColor: "#7fb3d5" }} />
-          <Box sx={{ position: "absolute", top: 6, left: 22, width: 6, height: 12, backgroundColor: "#8fbf7f" }} />
-          <Box sx={{ position: "absolute", bottom: 4, left: 8, width: 10, height: 8, borderRadius: "1px", backgroundColor: "#d9c48f" }} />
+        <Box sx={{ width: 76, height: 4, mx: "auto", backgroundColor: "#c9b896", borderRadius: 1 }} />
+        <Box sx={{ width: 92, height: 58, mt: "2px", borderRadius: 1, backgroundColor: "#fdfbf6", border: "3px solid #e4d5ba", boxShadow: "0 3px 8px rgba(0,0,0,0.1)", position: "relative", p: 0.75 }}>
+          <Box sx={{ display: "flex", gap: "3px" }}>
+            {["#f4e07a", "#f2938c", "#8fd19e", "#8fb8e8"].map((c) => (
+              <Box key={c} sx={{ width: 14, height: 12, backgroundColor: c, borderRadius: "1px", boxShadow: "0 1px 2px rgba(0,0,0,0.15)" }} />
+            ))}
+          </Box>
+          <Box component="svg" viewBox="0 0 84 24" sx={{ position: "absolute", bottom: 4, left: 4, width: 84, height: 24 }}>
+            <polyline points="0,20 14,14 28,17 42,8 56,11 70,3 84,6" fill="none" stroke="#9ca3af" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </Box>
         </Box>
       </Box>
 
