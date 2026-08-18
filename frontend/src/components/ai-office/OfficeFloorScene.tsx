@@ -126,30 +126,83 @@ const OfficeZone = memo(function OfficeZone({ title, agents, emptyLabel, accentC
   );
 });
 
-// Deutlich groessere Kuechenzeile: Kuehlschrank, Kaffeemaschine mit
-// Dampf-Animation, Kaffeetisch mit 2 Stuehlen, Tassen/Kekse. Rein dekorativ
-// (kein echter Agent haengt hier fix dran), Ziel der echten "Kaffee holen"-
-// Laufanimation (siehe kitchenRef in OfficeFloorScene).
-const OfficeKitchen = memo(function OfficeKitchen({ kitchenRef }: { kitchenRef: (el: HTMLDivElement | null) => void }) {
+// Deutlich groessere Kuechenzeile: echter Kuehlschrank mit oeffnender Tuer,
+// eine als Espressomaschine erkennbare Kaffeemaschine (Gruppenkopf + Tasse +
+// Dampf, keine Server-Schrank-Optik mehr), Kaffeetisch mit 2 Stuehlen. Rein
+// dekorativ (kein echter Agent haengt hier fix dran), zwei der drei Ziele
+// der echten Pausen-Laufanimation (siehe coffeeRef/fridgeRef in
+// OfficeFloorScene) - die Tuer oeffnet sich tatsaechlich, wenn jemand am
+// Kuehlschrank ankommt.
+const OfficeKitchen = memo(function OfficeKitchen({
+  coffeeRef,
+  fridgeRef,
+  fridgeOpen,
+}: {
+  coffeeRef: (el: HTMLDivElement | null) => void;
+  fridgeRef: (el: HTMLDivElement | null) => void;
+  fridgeOpen: boolean;
+}) {
   return (
-    <Box sx={{ position: "relative", width: 420, maxWidth: "100%", mx: "auto", mt: 2 }}>
+    <Box sx={{ position: "relative", width: 380, maxWidth: "100%" }}>
       <Box sx={{ fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.05em", color: "#6b5c47", textTransform: "uppercase", textAlign: "center", mb: 1 }}>
         ☕ Küche
       </Box>
-      <Box ref={kitchenRef} sx={{ position: "relative", height: 150, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.32)", border: "1px dashed rgba(139,115,85,0.25)", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 4, pb: 2 }}>
-        {/* Kuehlschrank */}
-        <Box sx={{ position: "relative", width: 34, height: 58, borderRadius: "3px", backgroundColor: "#dfe3e6", border: "2px solid #b8bec4" }}>
-          <Box sx={{ position: "absolute", top: 18, left: 0, right: 0, height: 2, backgroundColor: "#b8bec4" }} />
-          <Box sx={{ position: "absolute", top: 4, right: 3, width: 3, height: 10, borderRadius: 2, backgroundColor: "#9aa1a8" }} />
-          <Box sx={{ position: "absolute", top: 24, right: 3, width: 3, height: 16, borderRadius: 2, backgroundColor: "#9aa1a8" }} />
+      <Box sx={{ position: "relative", height: 160, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.32)", border: "1px dashed rgba(139,115,85,0.25)", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 4, pb: 2 }}>
+        {/* Kuehlschrank mit echter Tuer-Oeffnen-Animation */}
+        <Box ref={fridgeRef} sx={{ position: "relative", width: 40, height: 64, borderRadius: "4px", backgroundColor: "#2a2d33", perspective: "160px" }}>
+          {/* Inneres (wird beim Oeffnen sichtbar) */}
+          <Box sx={{ position: "absolute", inset: 3, borderRadius: "2px", backgroundColor: "#e8f2f5", display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 0.5, p: 0.5 }}>
+            <Box sx={{ width: "70%", height: 6, borderRadius: "1px", backgroundColor: "#e85a4f" }} />
+            <Box sx={{ width: "55%", height: 6, borderRadius: "1px", backgroundColor: "#4fa3e8" }} />
+            <Box sx={{ width: "60%", height: 8, borderRadius: "1px", backgroundColor: "#7fbf6f" }} />
+          </Box>
+          {/* Tuer */}
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "4px",
+              backgroundColor: "#dfe3e6",
+              border: "2px solid #b8bec4",
+              transformOrigin: "left center",
+              transition: "transform 0.6s ease",
+              transform: fridgeOpen ? "rotateY(-108deg)" : "rotateY(0deg)",
+            }}
+          >
+            <Box sx={{ position: "absolute", top: 18, left: 0, right: 0, height: 2, backgroundColor: "#b8bec4" }} />
+            <Box sx={{ position: "absolute", top: 5, right: 3, width: 3, height: 10, borderRadius: 2, backgroundColor: "#9aa1a8" }} />
+            <Box sx={{ position: "absolute", top: 25, right: 3, width: 3, height: 18, borderRadius: 2, backgroundColor: "#9aa1a8" }} />
+          </Box>
         </Box>
 
-        {/* Kaffeemaschine auf Arbeitsplatte */}
-        <Box sx={{ position: "relative" }}>
-          <Box sx={{ width: 60, height: 10, backgroundColor: "#c8a36b", borderRadius: 1, mb: "-2px" }} />
-          <Box sx={{ position: "relative", ml: "18px", width: 24, height: 32, borderRadius: "3px 3px 1px 1px", backgroundColor: "#4a4a52" }}>
-            <Box sx={{ position: "absolute", top: 4, left: 6, width: 12, height: 6, borderRadius: 1, backgroundColor: "#e8503a" }} />
-            <Box sx={{ position: "absolute", top: -12, left: 9, fontSize: 13, opacity: 0.65, animation: "office-steam 2.4s ease-in infinite", "@keyframes office-steam": { "0%": { transform: "translateY(0)", opacity: 0.65 }, "100%": { transform: "translateY(-16px)", opacity: 0 } } }}>
+        {/* Espressomaschine - Gruppenkopf, Tasse, Dampf statt Server-Optik */}
+        <Box ref={coffeeRef} sx={{ position: "relative" }}>
+          {/* Arbeitsplatte */}
+          <Box sx={{ width: 70, height: 8, backgroundColor: "#c8a36b", borderRadius: "2px", mb: "-1px" }} />
+          {/* Maschinenkoerper */}
+          <Box sx={{ position: "relative", mx: "auto", width: 46, height: 30, borderRadius: "6px 6px 3px 3px", background: "linear-gradient(180deg,#3a3d44,#26282d)", boxShadow: "0 2px 4px rgba(0,0,0,0.3)" }}>
+            {/* Chrom-Zierstreifen */}
+            <Box sx={{ position: "absolute", top: 3, left: 4, right: 4, height: 3, borderRadius: 2, backgroundColor: "#c9ccd1" }} />
+            {/* Bedienknoepfe */}
+            <Box sx={{ position: "absolute", top: 9, left: 6, width: 4, height: 4, borderRadius: "50%", backgroundColor: "#e85a4f" }} />
+            <Box sx={{ position: "absolute", top: 9, left: 13, width: 4, height: 4, borderRadius: "50%", backgroundColor: "#7fbf6f" }} />
+            {/* Gruppenkopf (Bruehgruppe) */}
+            <Box sx={{ position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)", width: 14, height: 8, backgroundColor: "#1c1e22", borderRadius: "1px" }} />
+          </Box>
+          {/* Tasse unter dem Gruppenkopf */}
+          <Box sx={{ position: "relative", mx: "auto", mt: "8px", width: 12, height: 10, borderRadius: "0 0 4px 4px", backgroundColor: "#fff", border: "1.5px solid #d8d0c0" }}>
+            <Box
+              sx={{
+                position: "absolute",
+                top: -14,
+                left: "50%",
+                transform: "translateX(-50%)",
+                fontSize: 12,
+                opacity: 0.7,
+                animation: "office-steam 2.2s ease-in infinite",
+                "@keyframes office-steam": { "0%": { transform: "translate(-50%,0)", opacity: 0.7 }, "100%": { transform: "translate(-50%,-16px)", opacity: 0 } },
+              }}
+            >
               〰️
             </Box>
           </Box>
@@ -164,7 +217,6 @@ const OfficeKitchen = memo(function OfficeKitchen({ kitchenRef }: { kitchenRef: 
             <Box sx={{ position: "absolute", top: -11, left: 26, fontSize: 15 }}>🍪</Box>
             <Box sx={{ position: "absolute", top: -11, right: 6, fontSize: 15 }}>☕</Box>
           </Box>
-          {/* Stuehle */}
           <Box sx={{ position: "absolute", bottom: -6, left: -16, width: 12, height: 16, border: "2.5px solid #a8804a", borderBottom: "none", borderRadius: "2px 2px 0 0" }} />
           <Box sx={{ position: "absolute", bottom: -6, right: -16, width: 12, height: 16, border: "2.5px solid #a8804a", borderBottom: "none", borderRadius: "2px 2px 0 0" }} />
         </Box>
@@ -173,18 +225,73 @@ const OfficeKitchen = memo(function OfficeKitchen({ kitchenRef }: { kitchenRef: 
   );
 });
 
-// Eine echte, laufende Person zwischen ihrem echten Schreibtisch und der
-// Kueche - Position wird per getBoundingClientRect() der tatsaechlichen
-// DOM-Elemente gemessen (kein geratener/fixer Pfad), animiert per CSS-
-// transition ueber transform. Nur real IDLE Agenten (echter Zustand: seit
-// je nie ausgeloest) werden ausgewaehlt - keine erfundene Aktivitaet fuer
-// WORKING/BLOCKED/WAITING-Agenten, deren echter Status damit nicht verfaelscht wird.
+// Chill Area: Couch + Shisha + kleiner Beistelltisch - drittes moegliches
+// Ziel der Pausen-Laufanimation. Egal was dort "gemacht" wird, es ist rein
+// dekorativ (kein echter Datenanspruch), aber ein reales, gemessenes
+// Laufziel wie Kueche/Kuehlschrank.
+const OfficeChillArea = memo(function OfficeChillArea({ chillRef }: { chillRef: (el: HTMLDivElement | null) => void }) {
+  return (
+    <Box sx={{ position: "relative", width: 300, maxWidth: "100%" }}>
+      <Box sx={{ fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.05em", color: "#6b5c47", textTransform: "uppercase", textAlign: "center", mb: 1 }}>
+        🛋️ Chill Area
+      </Box>
+      <Box ref={chillRef} sx={{ position: "relative", height: 160, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.32)", border: "1px dashed rgba(139,115,85,0.25)", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 3, pb: 2 }}>
+        {/* Couch */}
+        <Box sx={{ position: "relative", width: 100, height: 34 }}>
+          <Box sx={{ position: "absolute", bottom: 0, width: "100%", height: 22, borderRadius: "8px", backgroundColor: "#7a8fa6" }} />
+          <Box sx={{ position: "absolute", bottom: 14, width: "100%", height: 18, borderRadius: "8px 8px 4px 4px", backgroundColor: "#8fa3b8" }} />
+          {[6, 34, 62].map((left) => (
+            <Box key={left} sx={{ position: "absolute", bottom: 16, left, width: 24, height: 14, borderRadius: "5px", backgroundColor: "#a6b8c9" }} />
+          ))}
+          <Box sx={{ position: "absolute", bottom: -6, left: 4, width: 5, height: 8, backgroundColor: "#5c6b7a", borderRadius: 1 }} />
+          <Box sx={{ position: "absolute", bottom: -6, right: 4, width: 5, height: 8, backgroundColor: "#5c6b7a", borderRadius: 1 }} />
+        </Box>
+
+        {/* Shisha auf kleinem Tisch */}
+        <Box sx={{ position: "relative", width: 40 }}>
+          <Box sx={{ width: 40, height: 6, borderRadius: 1, backgroundColor: "#c8a36b" }} />
+          <Box sx={{ position: "absolute", bottom: -10, left: 4, width: 3, height: 10, backgroundColor: "#8a6c3f" }} />
+          <Box sx={{ position: "absolute", bottom: -10, right: 4, width: 3, height: 10, backgroundColor: "#8a6c3f" }} />
+          {/* Shisha-Silhouette: Vase + Rohr + Kopf */}
+          <Box sx={{ position: "absolute", bottom: 6, left: "50%", transform: "translateX(-50%)", width: 14, height: 18, borderRadius: "40% 40% 60% 60% / 50% 50% 70% 70%", background: "linear-gradient(180deg,#c9a86a,#7fbf9f)", opacity: 0.9 }} />
+          <Box sx={{ position: "absolute", bottom: 22, left: "50%", transform: "translateX(-50%)", width: 3, height: 8, backgroundColor: "#8a8a8a" }} />
+          <Box sx={{ position: "absolute", bottom: 29, left: "50%", transform: "translateX(-50%)", width: 8, height: 5, borderRadius: 1, backgroundColor: "#3a3a3a" }} />
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: 34,
+              left: "60%",
+              width: 3,
+              height: 3,
+              borderRadius: "50%",
+              backgroundColor: "rgba(230,230,230,0.6)",
+              animation: "office-shisha-smoke 2.6s ease-in infinite",
+              "@keyframes office-shisha-smoke": { "0%": { transform: "translate(0,0) scale(1)", opacity: 0.6 }, "100%": { transform: "translate(10px,-20px) scale(2.4)", opacity: 0 } },
+            }}
+          />
+        </Box>
+      </Box>
+    </Box>
+  );
+});
+
+// Eine echte, laufende Person zwischen ihrem echten Schreibtisch und einem
+// von drei Pausenzielen (Kaffee/Kuehlschrank/Chill Area) - Position wird per
+// getBoundingClientRect() der tatsaechlichen DOM-Elemente gemessen (kein
+// geratener/fixer Pfad), animiert per CSS-transition. Nur real IDLE Agenten
+// (echter Zustand: seit je nie ausgeloest) werden ausgewaehlt - keine
+// erfundene Aktivitaet fuer WORKING/BLOCKED/WAITING-Agenten, deren echter
+// Status damit nicht verfaelscht wird.
+type WalkDestination = "coffee" | "fridge" | "chill";
+const DESTINATION_ITEM: Record<WalkDestination, string> = { coffee: "☕", fridge: "🥤", chill: "😌" };
+
 interface WalkerState {
   agentId: string;
   color: string;
+  destination: WalkDestination;
   from: { x: number; y: number };
   to: { x: number; y: number };
-  atKitchen: boolean;
+  atDestination: boolean;
 }
 
 // Diverse, unterschiedlich geformte Pflanzen statt eines einzigen,
@@ -247,7 +354,9 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const deskElsRef = useRef(new Map<string, HTMLDivElement>());
-  const kitchenElRef = useRef<HTMLDivElement | null>(null);
+  const coffeeElRef = useRef<HTMLDivElement | null>(null);
+  const fridgeElRef = useRef<HTMLDivElement | null>(null);
+  const chillElRef = useRef<HTMLDivElement | null>(null);
   const [walker, setWalker] = useState<WalkerState | null>(null);
   const walkerRef = useRef<WalkerState | null>(null);
   walkerRef.current = walker;
@@ -262,28 +371,47 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
     if (el) deskElsRef.current.set(agentId, el);
     else deskElsRef.current.delete(agentId);
   }, []);
-  const registerKitchenRef = useCallback((el: HTMLDivElement | null) => {
-    kitchenElRef.current = el;
+  const registerCoffeeRef = useCallback((el: HTMLDivElement | null) => {
+    coffeeElRef.current = el;
+  }, []);
+  const registerFridgeRef = useCallback((el: HTMLDivElement | null) => {
+    fridgeElRef.current = el;
+  }, []);
+  const registerChillRef = useCallback((el: HTMLDivElement | null) => {
+    chillElRef.current = el;
   }, []);
 
-  // Periodisch: eine echte, aktuell IDLE Person geht "Kaffee holen" - Weg
-  // wird live aus den tatsaechlichen Bildschirmpositionen berechnet.
+  // Periodisch: eine echte, aktuell IDLE Person macht Pause an einem von
+  // drei Zielen (Kaffee/Kuehlschrank/Chill Area, zufaellig gewaehlt) - Weg
+  // wird live aus den tatsaechlichen Bildschirmpositionen berechnet. Die
+  // Ref-Zuordnung lebt bewusst INNERHALB des Effekts (kein externes
+  // Dependency-Problem) - die Refs selbst sind stabil, nur ihr .current
+  // aendert sich.
   useEffect(() => {
     const interval = setInterval(() => {
       if (walkerRef.current) return;
       const idleCandidates = withColorRef.current.filter((x) => x.agent.status === "IDLE" && deskElsRef.current.has(x.agent.rule.id));
-      if (idleCandidates.length === 0 || !kitchenElRef.current || !containerRef.current) return;
+      if (idleCandidates.length === 0 || !containerRef.current) return;
+      const destinationRefs: Record<WalkDestination, HTMLDivElement | null> = {
+        coffee: coffeeElRef.current,
+        fridge: fridgeElRef.current,
+        chill: chillElRef.current,
+      };
+      const destinations: WalkDestination[] = ["coffee", "fridge", "chill"];
+      const destination = destinations[Math.floor(Math.random() * destinations.length)]!;
+      const destinationEl = destinationRefs[destination];
+      if (!destinationEl) return;
       const pick = idleCandidates[Math.floor(Math.random() * idleCandidates.length)]!;
       const deskEl = deskElsRef.current.get(pick.agent.rule.id)!;
       const containerRect = containerRef.current.getBoundingClientRect();
       const deskRect = deskEl.getBoundingClientRect();
-      const kitchenRect = kitchenElRef.current.getBoundingClientRect();
+      const destRect = destinationEl.getBoundingClientRect();
       const from = { x: deskRect.left + deskRect.width / 2 - containerRect.left, y: deskRect.bottom - containerRect.top - 10 };
-      const to = { x: kitchenRect.left + kitchenRect.width / 2 - containerRect.left, y: kitchenRect.bottom - containerRect.top - 14 };
+      const to = { x: destRect.left + destRect.width / 2 - containerRect.left, y: destRect.bottom - containerRect.top - 14 };
 
-      setWalker({ agentId: pick.agent.rule.id, color: pick.color, from, to, atKitchen: false });
-      const t1 = setTimeout(() => setWalker((w) => (w ? { ...w, atKitchen: true } : w)), 1800);
-      const t2 = setTimeout(() => setWalker((w) => (w ? { ...w, atKitchen: false } : w)), 4600);
+      setWalker({ agentId: pick.agent.rule.id, color: pick.color, destination, from, to, atDestination: false });
+      const t1 = setTimeout(() => setWalker((w) => (w ? { ...w, atDestination: true } : w)), 1800);
+      const t2 = setTimeout(() => setWalker((w) => (w ? { ...w, atDestination: false } : w)), 4600);
       const t3 = setTimeout(() => setWalker(null), 6400);
       return () => {
         clearTimeout(t1);
@@ -294,7 +422,8 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
     return () => clearInterval(interval);
   }, []);
 
-  const walkerPos = walker ? (walker.atKitchen ? walker.to : walker.from) : null;
+  const walkerPos = walker ? (walker.atDestination ? walker.to : walker.from) : null;
+  const fridgeOpen = walker?.destination === "fridge" && walker.atDestination;
 
   return (
     <Box
@@ -397,23 +526,22 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
           </Box>
         </Box>
 
-        <OfficeKitchen kitchenRef={registerKitchenRef} />
+        <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 3, mt: 2 }}>
+          <OfficeKitchen coffeeRef={registerCoffeeRef} fridgeRef={registerFridgeRef} fridgeOpen={fridgeOpen} />
+          <OfficeChillArea chillRef={registerChillRef} />
+        </Box>
       </Box>
 
-      {/* Der laufende Charakter - echte, gemessene Start-/Zielposition */}
+      {/* Der laufende Charakter - echte, gemessene Start-/Zielposition, mit
+          echtem Gang-Zyklus waehrend der Bewegung. Am Ziel angekommen haelt
+          sie/er kurz das zum Ziel passende Item (Kaffee/Snack aus dem
+          Kuehlschrank/entspannt in der Chill Area). */}
       {walker && walkerPos ? (
-        <Box
-          sx={{
-            position: "absolute",
-            left: walkerPos.x,
-            top: walkerPos.y,
-            transform: "translate(-50%, -100%)",
-            transition: "left 1.8s ease-in-out, top 1.8s ease-in-out",
-            zIndex: 5,
-            pointerEvents: "none",
-          }}
-        >
-          <OfficeCharacter status="WORKING" color={walker.color} label="unterwegs zur Küche" onClick={() => undefined} tooltip="Kaffeepause ☕" />
+        <Box sx={{ position: "absolute", left: walkerPos.x, top: walkerPos.y, transform: "translate(-50%, -100%)", transition: "left 1.8s ease-in-out, top 1.8s ease-in-out", zIndex: 5, pointerEvents: "none" }}>
+          {walker.atDestination ? (
+            <Box sx={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", fontSize: 18 }}>{DESTINATION_ITEM[walker.destination]}</Box>
+          ) : null}
+          <OfficeCharacter status="IDLE" walking={!walker.atDestination} color={walker.color} label="Pause" onClick={() => undefined} tooltip="Pause" />
         </Box>
       ) : null}
     </Box>

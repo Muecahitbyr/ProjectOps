@@ -9,6 +9,10 @@ interface OfficeCharacterProps {
   label: string;
   tooltip: React.ReactNode;
   onClick: () => void;
+  // "walking" ueberschreibt die statusbasierte Pose mit einem echten
+  // Gang-Zyklus (Beine/Arme wechselseitig rotiert) - genutzt vom
+  // Kaffeepause-/Kuehlschrank-Laufweg in OfficeFloorScene.tsx.
+  walking?: boolean;
 }
 
 // Ein einzelner, selbst per SVG gezeichneter (kein externes Asset/keine
@@ -21,12 +25,12 @@ interface OfficeCharacterProps {
 // "kaputt"-Signal ist der brennende Schreibtisch in OfficeFloorScene.tsx).
 // Keine erfundene Aktivitaet - ein Agent ohne jede Regel wird gar nicht erst
 // gerendert.
-export const OfficeCharacter = memo(function OfficeCharacter({ status, color, label, tooltip, onClick }: OfficeCharacterProps) {
-  const isBlocked = status === "BLOCKED";
-  const isWorking = status === "WORKING";
-  const isIdle = status === "IDLE";
-  const isWaiting = status === "WAITING";
-  const isCompleted = status === "COMPLETED";
+export const OfficeCharacter = memo(function OfficeCharacter({ status, color, label, tooltip, onClick, walking }: OfficeCharacterProps) {
+  const isBlocked = !walking && status === "BLOCKED";
+  const isWorking = !walking && status === "WORKING";
+  const isIdle = !walking && status === "IDLE";
+  const isWaiting = !walking && status === "WAITING";
+  const isCompleted = !walking && status === "COMPLETED";
   const skin = "#e8b48a";
   const hair = "#3b2a1a";
 
@@ -73,16 +77,22 @@ export const OfficeCharacter = memo(function OfficeCharacter({ status, color, la
             transform: isBlocked ? "translateX(-58%) rotate(-7deg)" : "translateX(-50%)",
             transformOrigin: "center bottom",
             transition: "transform 0.3s ease",
-            animation: isWorking
-              ? "office-char-bob 0.9s ease-in-out infinite"
-              : isIdle
-                ? "office-char-breathe 3.2s ease-in-out infinite"
-                : isBlocked
-                  ? "office-char-flinch 0.5s ease-in-out infinite"
-                  : undefined,
+            animation: walking
+              ? "office-char-walk-bob 0.4s ease-in-out infinite"
+              : isWorking
+                ? "office-char-bob 0.9s ease-in-out infinite"
+                : isIdle
+                  ? "office-char-breathe 3.2s ease-in-out infinite"
+                  : isBlocked
+                    ? "office-char-flinch 0.5s ease-in-out infinite"
+                    : undefined,
             "@keyframes office-char-bob": {
               "0%, 100%": { transform: "translateX(-50%) translateY(0) rotate(0deg)" },
               "50%": { transform: "translateX(-50%) translateY(-3px) rotate(-2deg)" },
+            },
+            "@keyframes office-char-walk-bob": {
+              "0%, 100%": { transform: "translateX(-50%) translateY(0)" },
+              "50%": { transform: "translateX(-50%) translateY(-2px)" },
             },
             "@keyframes office-char-breathe": {
               "0%, 100%": { transform: "translateX(-50%) scale(1)" },
@@ -94,19 +104,29 @@ export const OfficeCharacter = memo(function OfficeCharacter({ status, color, la
             },
           }}
         >
+          {/* Echter Gang-Zyklus: Beine/Arme wechselseitig um die Hueft-/
+              Schulterachse rotiert (kein Gleiten - die Glieder bewegen sich). */}
+          {walking ? (
+            <style>{`
+              @keyframes office-leg-fwd { 0%,100% { transform: rotate(24deg); } 50% { transform: rotate(-24deg); } }
+              @keyframes office-leg-back { 0%,100% { transform: rotate(-24deg); } 50% { transform: rotate(24deg); } }
+              @keyframes office-arm-fwd { 0%,100% { transform: rotate(-20deg); } 50% { transform: rotate(20deg); } }
+              @keyframes office-arm-back { 0%,100% { transform: rotate(20deg); } 50% { transform: rotate(-20deg); } }
+            `}</style>
+          ) : null}
           {/* Beine */}
-          <rect x="16" y="58" width="8" height="16" rx="3" fill="#37414f" />
-          <rect x="28" y="58" width="8" height="16" rx="3" fill="#2b333f" />
+          <rect x="16" y="58" width="8" height="16" rx="3" fill="#37414f" style={walking ? { transformOrigin: "20px 58px", animation: "office-leg-fwd 0.4s ease-in-out infinite" } : undefined} />
+          <rect x="28" y="58" width="8" height="16" rx="3" fill="#2b333f" style={walking ? { transformOrigin: "32px 58px", animation: "office-leg-back 0.4s ease-in-out infinite" } : undefined} />
           {/* Schuhe */}
-          <rect x="14.5" y="72" width="10" height="5" rx="2" fill="#1c2128" />
-          <rect x="26.5" y="72" width="10" height="5" rx="2" fill="#1c2128" />
+          <rect x="14.5" y="72" width="10" height="5" rx="2" fill="#1c2128" style={walking ? { transformOrigin: "20px 58px", animation: "office-leg-fwd 0.4s ease-in-out infinite" } : undefined} />
+          <rect x="26.5" y="72" width="10" height="5" rx="2" fill="#1c2128" style={walking ? { transformOrigin: "32px 58px", animation: "office-leg-back 0.4s ease-in-out infinite" } : undefined} />
           {/* Koerper/Pullover */}
           <path d="M13 34 Q13 26 26 26 Q39 26 39 34 L40 62 Q26 66 12 62 Z" fill={color} />
           {/* Kragen */}
           <path d="M20 27 L26 33 L32 27" stroke="#ffffff55" strokeWidth="2" fill="none" strokeLinecap="round" />
           {/* Arme */}
-          <rect x="5" y="33" width="9" height="22" rx="4.5" fill={color} />
-          <rect x="38" y="33" width="9" height="22" rx="4.5" fill={color} />
+          <rect x="5" y="33" width="9" height="22" rx="4.5" fill={color} style={walking ? { transformOrigin: "9.5px 34px", animation: "office-arm-back 0.4s ease-in-out infinite" } : undefined} />
+          <rect x="38" y="33" width="9" height="22" rx="4.5" fill={color} style={walking ? { transformOrigin: "42.5px 34px", animation: "office-arm-fwd 0.4s ease-in-out infinite" } : undefined} />
           <circle cx="9.5" cy="54" r="4" fill={skin} />
           <circle cx="42.5" cy="54" r="4" fill={skin} />
           {/* Hals */}
