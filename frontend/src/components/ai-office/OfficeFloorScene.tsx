@@ -584,21 +584,25 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
         <Box
           sx={{
             mt: 1,
-            width: 176,
-            height: 92,
+            width: 168,
+            height: 100,
             borderRadius: "3px",
-            backgroundColor: "#fdfdfc",
+            backgroundColor: "#ffffff",
             border: "4px solid #efe6d8",
             boxShadow: "0 4px 14px rgba(0,0,0,0.25)",
+            overflow: "hidden",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            p: 0.75,
             animation: "office-screen-flicker 5s ease-in-out infinite",
             "@keyframes office-screen-flicker": { "0%,96%,100%": { opacity: 1 }, "97%": { opacity: 0.85 } },
           }}
         >
-          <Box component="img" src="/bayar-solutions-logo.png" alt="Bayar Solutions" sx={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+          {/* Bild ist bereits eng auf Logo+Schriftzug zugeschnitten (kein
+              erkennbarer Weiss-Rand mehr) und fuellt die Leinwand randlos -
+              kein Padding/Objekt-Versatz, der einen zweiten helleren Rand
+              gegen den Leinwand-Hintergrund erzeugen wuerde. */}
+          <Box component="img" src="/bayar-solutions-logo.png" alt="Bayar Solutions" sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
         </Box>
       </Box>
 
