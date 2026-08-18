@@ -1,0 +1,11 @@
+-- Phase 20 "Enterprise API Governance, Developer Portal & Credential
+-- Lifecycle" Auftragspunkt 1 "API Key Lifecycle". api_keys (Migration 0033,
+-- erweitert 0034) enthaelt bereits created_at/created_by/last_used_at/
+-- expires_at/revoked_at - der Auftrag verlangt zusaetzlich revokedBy sowie
+-- einen "status" (ACTIVE/EXPIRED/REVOKED). Fuer revokedBy fehlt eine echte
+-- Spalte (additiv ergaenzt); fuer status verlangt der Auftrag ausdruecklich
+-- eine ABGELEITETE Logik statt einer redundant gespeicherten Spalte -
+-- ACTIVE/EXPIRED/REVOKED lassen sich vollstaendig aus revoked_at/expires_at
+-- berechnen (siehe deriveApiKeyStatus() in types/api-key.types.ts), daher
+-- bewusst KEINE status-Spalte hier.
+ALTER TABLE api_keys ADD COLUMN revoked_by TEXT REFERENCES users(id) ON DELETE SET NULL;

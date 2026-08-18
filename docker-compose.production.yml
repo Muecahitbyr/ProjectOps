@@ -1,0 +1,95 @@
+# Auftragspunkt 7 "Deployment Vorbereitung" (Phase 10). Vier Services:
+# postgres (Datenbank), backend (Express/WebSocket), frontend (statisches
+# Vite-Bundle hinter eigenem nginx), reverse-proxy (einziger nach aussen
+# exponierter Service, routet /, /api, /ws - siehe deploy/nginx/reverse-proxy.conf).
+#
+# Nutzung:
+#   cp .env.production.example .env.production   # ausfuellen, siehe Kommentare dort
+#   docker compose --env-file .env.production -f docker-compose.production.yml up -d --build
+#
+# WICHTIG: --env-file .env.production ist erforderlich, nicht optional. Ohne
+# dieses Flag liest Compose fuer die ${VAR}-Interpolationen unten (POSTGRES_
+# PASSWORD, CORS_ORIGIN, ...) automatisch eine eventuell vorhandene .env im
+# Projektverzeichnis (die lokale Development-Konfiguration!) statt
+# .env.production - das wuerde die Produktionsdatenbank z.B. mit dem
+# schwachen Dev-Default-Passwort statt dem eigenen starken Passwort
+# initialisieren. env_file: bei "backend" unten deckt nur die Container-
+# Umgebungsvariablen ab, nicht diese YAML-Interpolationen - beides wird
+# gebraucht.
+#
+# Der bestehende docker-compose.yml (nur Postgres, fuer lokale Entwicklung
+# mit `npm run dev`) bleibt unveraendert bestehen.
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-projectops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD muss in .env.production gesetzt sein}
+      POSTGRES_DB: ${POSTGRES_DB:-projectops}
+    volumes:
+      - projectops-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-projectops} -d ${POSTGRES_DB:-projectops}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks: [projectops]
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-projectops}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-projectops}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks: [projectops]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Leer = relative /api-Pfade, das Frontend wird ueber denselben Host
+        # wie das Backend ausgeliefert (siehe reverse-proxy). Nur setzen, wenn
+        # das Frontend tatsaechlich unter einer anderen Origin als das
+        # Backend laeuft.
+        VITE_API_URL: ${VITE_API_URL:-}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks: [projectops]
+
+  reverse-proxy:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      # Fuer TLS-Terminierung direkt hier: Port 443 freigeben und den
+      # auskommentierten https-Block in reverse-proxy.conf aktivieren.
+      # - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./deploy/nginx/reverse-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+      # - ./deploy/nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+      - frontend
+    networks: [projectops]
+
+networks:
+  projectops:
+
+volumes:
+  projectops-postgres-data:

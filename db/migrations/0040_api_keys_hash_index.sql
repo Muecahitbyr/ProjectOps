@@ -1,0 +1,13 @@
+-- Phase 20 Auftragspunkt 18 "Performance" - "API-Key-Authentifizierung ist
+-- Hot Path... besonders pruefen: revoked_at/expires_at/last_used_at/Scope
+-- Loading". Bei der Ueberpruefung zeigte sich ein echter, bisher
+-- unentdeckter Performance-Bug: api_keys.key_hash (der WHERE-Filter von
+-- findApiKeyByHash() in db/api-keys.repository.ts, aufgerufen bei JEDEM
+-- einzelnen authentifizierten /api/v1-Request seit Phase 16) hatte NIEMALS
+-- einen Index - jede Authentifizierung war ein vollstaendiger Sequential
+-- Scan ueber die gesamte api_keys-Tabelle. UNIQUE statt einfachem Index:
+-- zwei Zeilen mit demselben Hash waeren ein Integritaetsfehler (der Hash
+-- wird nie manuell, sondern immer aus einem frisch generierten,
+-- kryptographisch zufaelligen Secret abgeleitet), die Unique-Constraint
+-- macht diese Garantie explizit statt sie nur implizit anzunehmen.
+CREATE UNIQUE INDEX idx_api_keys_key_hash ON api_keys (key_hash);
