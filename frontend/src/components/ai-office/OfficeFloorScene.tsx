@@ -257,10 +257,13 @@ const OfficeChillArea = memo(function OfficeChillArea({ chillRef }: { chillRef: 
       <Box sx={{ fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.05em", color: "#6b5c47", textTransform: "uppercase", textAlign: "center", mb: 1.5 }}>
         🛋️ Chill Area
       </Box>
-      <Box ref={chillRef} sx={{ position: "relative", height: 90, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 2 }}>
+      <Box sx={{ position: "relative", height: 90, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 2 }}>
         {/* Couch - schlichter, flacher Stil (Video-Referenz): ein Sitzkissen
-            in Akzentfarbe auf dunkelgrauer Basis statt mehrerer Einzelpolster. */}
-        <Box sx={{ position: "relative", width: 74, height: 24 }}>
+            in Akzentfarbe auf dunkelgrauer Basis statt mehrerer Einzelpolster.
+            chillRef sitzt direkt auf der Couch (statt dem ganzen Bereich),
+            damit die Pausen-Laufanimation praezise darauf zielt - inkl. dem
+            Hinlegen bei Ankunft. */}
+        <Box ref={chillRef} sx={{ position: "relative", width: 74, height: 24 }}>
           <Box sx={{ position: "absolute", bottom: 0, width: "100%", height: 20, borderRadius: "8px", backgroundColor: "#4a4f57" }} />
           <Box sx={{ position: "absolute", bottom: 12, left: 8, width: 22, height: 12, borderRadius: "4px", backgroundColor: "#e08a4f" }} />
           <Box sx={{ position: "absolute", bottom: -5, left: 3, width: 4, height: 6, backgroundColor: "#33373d", borderRadius: 1 }} />
@@ -294,6 +297,47 @@ const OfficeChillArea = memo(function OfficeChillArea({ chillRef }: { chillRef: 
     </Box>
   );
 });
+
+// Liegende Figur fuer die Chill Area - eigene, einfache Silhouette statt
+// einer gedrehten OfficeCharacter (deren Gliedmassen/Pivots auf die
+// stehende Pose zugeschnitten sind). Beine am vorderen Ende der Couch,
+// Kopf mit Haar-Kappe am hinteren Ende, dieselbe Projekt-Farbe wie am
+// Schreibtisch.
+function OfficeLyingCharacter({ color }: { color: string }) {
+  const skin = "#e8b48a";
+  const hair = "#3b2a1a";
+  return (
+    <Box
+      sx={{
+        position: "relative",
+        width: 66,
+        height: 28,
+        animation: "office-lying-breathe 3.2s ease-in-out infinite",
+        "@keyframes office-lying-breathe": { "0%,100%": { transform: "scaleX(1)" }, "50%": { transform: "scaleX(0.985)" } },
+      }}
+    >
+      <Box
+        sx={{
+          position: "absolute",
+          top: -16,
+          left: 4,
+          fontSize: 14,
+          animation: "office-char-zzz 2.4s ease-in-out infinite",
+          "@keyframes office-char-zzz": { "0%,100%": { opacity: 0.3, transform: "translateY(0)" }, "50%": { opacity: 1, transform: "translateY(-4px)" } },
+        }}
+      >
+        💤
+      </Box>
+      {/* Beine - angewinkelt am vorderen Ende der Liegeflaeche */}
+      <Box sx={{ position: "absolute", bottom: 1, left: 0, width: 15, height: 7, borderRadius: 3, backgroundColor: "#2b333f" }} />
+      {/* Koerper liegend */}
+      <Box sx={{ position: "absolute", bottom: 5, left: 11, width: 32, height: 14, borderRadius: 7, backgroundColor: color }} />
+      {/* Kopf am hinteren Ende, mit derselben Haar-Kappe wie im Stehen */}
+      <Box sx={{ position: "absolute", bottom: 2, right: 0, width: 23, height: 23, borderRadius: "50%", backgroundColor: skin }} />
+      <Box sx={{ position: "absolute", bottom: 12, right: -1, width: 25, height: 15, borderRadius: "50% 50% 45% 45%", backgroundColor: hair }} />
+    </Box>
+  );
+}
 
 // Eine echte, laufende Person zwischen ihrem echten Schreibtisch und einem
 // von drei Pausenzielen (Kaffee/Kuehlschrank/Chill Area) - Position wird per
@@ -494,12 +538,12 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
         border: "1px solid rgba(0,0,0,0.08)",
       }}
     >
-      {/* Fenster mit driftenden Wolken */}
-      {[52, "calc(100% - 172px)"].map((left, i) => (
-        <Box key={i} sx={{ position: "absolute", top: 16, left, width: 120, height: 84, borderRadius: 1, border: "5px solid #fff", boxShadow: "0 2px 10px rgba(0,0,0,0.08)", overflow: "hidden", background: "linear-gradient(180deg,#bfe0f5,#e8f4fb)" }}>
-          <Box sx={{ position: "absolute", inset: 0, "&::before, &::after": { content: '""', position: "absolute", backgroundColor: "#fff", zIndex: 1 }, "&::before": { top: 0, bottom: 0, left: "50%", width: 4, transform: "translateX(-50%)" }, "&::after": { left: 0, right: 0, top: "50%", height: 4, transform: "translateY(-50%)" } }} />
-          <Box sx={{ position: "absolute", top: 14, left: -40, width: 26, height: 10, borderRadius: 5, backgroundColor: "#fff", opacity: 0.85, animation: `office-cloud-drift 14s linear infinite`, animationDelay: `${i * 4}s`, "@keyframes office-cloud-drift": { from: { transform: "translateX(0)" }, to: { transform: "translateX(220px)" } } }} />
-          <Box sx={{ position: "absolute", top: 40, left: -70, width: 20, height: 8, borderRadius: 4, backgroundColor: "#fff", opacity: 0.7, animation: `office-cloud-drift 20s linear infinite`, animationDelay: `${i * 6}s` }} />
+      {/* Fenster mit driftenden Wolken - groesser als zuvor */}
+      {[52, "calc(100% - 202px)"].map((left, i) => (
+        <Box key={i} sx={{ position: "absolute", top: 16, left, width: 150, height: 105, borderRadius: 1, border: "6px solid #fff", boxShadow: "0 2px 10px rgba(0,0,0,0.08)", overflow: "hidden", background: "linear-gradient(180deg,#bfe0f5,#e8f4fb)" }}>
+          <Box sx={{ position: "absolute", inset: 0, "&::before, &::after": { content: '""', position: "absolute", backgroundColor: "#fff", zIndex: 1 }, "&::before": { top: 0, bottom: 0, left: "50%", width: 5, transform: "translateX(-50%)" }, "&::after": { left: 0, right: 0, top: "50%", height: 5, transform: "translateY(-50%)" } }} />
+          <Box sx={{ position: "absolute", top: 18, left: -50, width: 32, height: 12, borderRadius: 6, backgroundColor: "#fff", opacity: 0.85, animation: `office-cloud-drift 14s linear infinite`, animationDelay: `${i * 4}s`, "@keyframes office-cloud-drift": { from: { transform: "translateX(0)" }, to: { transform: "translateX(270px)" } } }} />
+          <Box sx={{ position: "absolute", top: 50, left: -85, width: 25, height: 10, borderRadius: 5, backgroundColor: "#fff", opacity: 0.7, animation: `office-cloud-drift 20s linear infinite`, animationDelay: `${i * 6}s` }} />
         </Box>
       ))}
 
@@ -523,30 +567,30 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
         </Box>
       </Box>
 
-      {/* Projektor-Leinwand mit echtem Projektnamen (bayar-solutions - real
-          bekannter Firmenname aus den Projektdaten, kein erfundenes Logo) */}
+      {/* Projektor-Leinwand mit dem echten, vom Nutzer bereitgestellten Logo
+          (frontend/public/bayar-solutions-logo.png) statt eines erfundenen
+          oder reinen Text-Wordmarks. */}
       <Box sx={{ position: "absolute", top: 18, left: "50%", transform: "translateX(20px)", display: { xs: "none", md: "block" } }}>
         <Box sx={{ width: 3, height: 10, mx: "auto", backgroundColor: "#8a8a8a" }} />
         <Box sx={{ width: 8, height: 5, mx: "auto", borderRadius: 1, backgroundColor: "#3a3a3a" }} />
         <Box
           sx={{
             mt: 1,
-            width: 130,
-            height: 60,
+            width: 108,
+            height: 108,
             borderRadius: "3px",
-            backgroundColor: "#1c2128",
+            backgroundColor: "#fdfdfc",
             border: "4px solid #efe6d8",
             boxShadow: "0 4px 14px rgba(0,0,0,0.25)",
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
+            p: 1,
             animation: "office-screen-flicker 5s ease-in-out infinite",
             "@keyframes office-screen-flicker": { "0%,96%,100%": { opacity: 1 }, "97%": { opacity: 0.85 } },
           }}
         >
-          <Box sx={{ fontSize: "0.62rem", fontWeight: 800, letterSpacing: "0.04em", color: "#f5f0e6" }}>BAYAR</Box>
-          <Box sx={{ fontSize: "0.62rem", fontWeight: 800, letterSpacing: "0.04em", color: "#f5f0e6" }}>SOLUTIONS</Box>
+          <Box component="img" src="/bayar-solutions-logo.png" alt="Bayar Solutions" sx={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
         </Box>
       </Box>
 
@@ -598,14 +642,21 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
       {/* Der laufende Charakter - echte, gemessene Start-/Zielposition, mit
           echtem Gang-Zyklus waehrend der Bewegung. Am Ziel angekommen haelt
           sie/er kurz das zum Ziel passende Item (Kaffee/Snack aus dem
-          Kuehlschrank/entspannt in der Chill Area). */}
+          Kuehlschrank), oder legt sich in der Chill Area tatsaechlich auf
+          die Couch statt nur davorzustehen. */}
       {walker && walkerPos ? (
-        <Box sx={{ position: "absolute", left: walkerPos.x, top: walkerPos.y, transform: "translate(-50%, -100%)", transition: `left ${WALK_MS}ms ease-in-out, top ${WALK_MS}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
-          {walker.atDestination ? (
-            <Box sx={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", fontSize: 18 }}>{DESTINATION_ITEM[walker.destination]}</Box>
-          ) : null}
-          <OfficeCharacter status="IDLE" walking={walker.walking} color={walker.color} label="Pause" onClick={() => undefined} tooltip="Pause" />
-        </Box>
+        walker.atDestination && walker.destination === "chill" ? (
+          <Box sx={{ position: "absolute", left: walkerPos.x, top: walkerPos.y, transform: "translate(-52%, -32px)", transition: `left ${WALK_MS}ms ease-in-out, top ${WALK_MS}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
+            <OfficeLyingCharacter color={walker.color} />
+          </Box>
+        ) : (
+          <Box sx={{ position: "absolute", left: walkerPos.x, top: walkerPos.y, transform: "translate(-50%, -100%)", transition: `left ${WALK_MS}ms ease-in-out, top ${WALK_MS}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
+            {walker.atDestination ? (
+              <Box sx={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", fontSize: 18 }}>{DESTINATION_ITEM[walker.destination]}</Box>
+            ) : null}
+            <OfficeCharacter status="IDLE" walking={walker.walking} color={walker.color} label="Pause" onClick={() => undefined} tooltip="Pause" />
+          </Box>
+        )
       ) : null}
     </Box>
   );
