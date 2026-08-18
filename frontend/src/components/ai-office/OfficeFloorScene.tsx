@@ -584,8 +584,8 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
         <Box
           sx={{
             mt: 1,
-            width: 108,
-            height: 108,
+            width: 176,
+            height: 92,
             borderRadius: "3px",
             backgroundColor: "#fdfdfc",
             border: "4px solid #efe6d8",
@@ -593,7 +593,7 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            p: 1,
+            p: 0.75,
             animation: "office-screen-flicker 5s ease-in-out infinite",
             "@keyframes office-screen-flicker": { "0%,96%,100%": { opacity: 1 }, "97%": { opacity: 0.85 } },
           }}
