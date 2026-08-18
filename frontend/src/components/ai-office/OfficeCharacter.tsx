@@ -42,8 +42,8 @@ export const OfficeCharacter = memo(function OfficeCharacter({ status, color, la
         aria-label={label}
         sx={{
           position: "relative",
-          width: 60,
-          height: 82,
+          width: 44,
+          height: 60,
           cursor: "pointer",
           transition: "transform 0.15s ease",
           zIndex: 1,
@@ -57,8 +57,8 @@ export const OfficeCharacter = memo(function OfficeCharacter({ status, color, la
             bottom: 0,
             left: "50%",
             transform: "translateX(-50%)",
-            width: 32,
-            height: 8,
+            width: 24,
+            height: 6,
             borderRadius: "50%",
             backgroundColor: "rgba(40,30,20,0.22)",
             filter: "blur(1.5px)",
@@ -71,9 +71,9 @@ export const OfficeCharacter = memo(function OfficeCharacter({ status, color, la
           sx={{
             position: "absolute",
             left: "50%",
-            bottom: 6,
-            width: 52,
-            height: 76,
+            bottom: 4,
+            width: 38,
+            height: 56,
             transform: isBlocked ? "translateX(-58%) rotate(-7deg)" : "translateX(-50%)",
             transformOrigin: "center bottom",
             transition: "transform 0.3s ease",
@@ -161,15 +161,18 @@ export const OfficeCharacter = memo(function OfficeCharacter({ status, color, la
           )}
         </Box>
 
-        {/* Zustands-Badge oberhalb der Figur */}
+        {/* Zustands-Badge oberhalb der Figur - bewusst nur fuer die beiden
+            Zustaende, die sich nicht schon an der Pose ablesen lassen
+            (Schlafen/Warten). COMPLETED bekommt bewusst kein Extra-Icon mehr
+            (fuehrte zu Verwirrung "was bedeutet das gruene Icon") - eine
+            erfolgreich abgeschlossene Aufgabe sieht einfach wie normales
+            wach/aufmerksames Stehen aus. */}
         {isIdle ? (
-          <Box sx={{ position: "absolute", top: -4, right: 2, fontSize: 15, animation: "office-char-zzz 2.4s ease-in-out infinite", "@keyframes office-char-zzz": { "0%,100%": { opacity: 0.3, transform: "translateY(0)" }, "50%": { opacity: 1, transform: "translateY(-4px)" } } }}>
+          <Box sx={{ position: "absolute", top: -2, right: 0, fontSize: 12, animation: "office-char-zzz 2.4s ease-in-out infinite", "@keyframes office-char-zzz": { "0%,100%": { opacity: 0.3, transform: "translateY(0)" }, "50%": { opacity: 1, transform: "translateY(-4px)" } } }}>
             💤
           </Box>
         ) : isWaiting ? (
-          <Box sx={{ position: "absolute", top: -6, right: 2, fontSize: 15 }}>⏳</Box>
-        ) : isCompleted ? (
-          <Box sx={{ position: "absolute", top: -6, right: 2, fontSize: 15 }}>✅</Box>
+          <Box sx={{ position: "absolute", top: -4, right: 0, fontSize: 12 }}>⏳</Box>
         ) : null}
       </Box>
     </Tooltip>
