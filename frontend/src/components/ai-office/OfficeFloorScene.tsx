@@ -108,15 +108,14 @@ const OfficeDesk = memo(function OfficeDesk({ agent, color, away, onSelectAgent,
               boxShadow: "0 3px 8px rgba(0,0,0,0.22)",
             }}
           >
-            {/* Angebissener Apfel statt eines schlichten Punkts - zwei
-                ungleich grosse Kreise fuer die Apfel-Silhouette, ein
-                "ausgestanzter" Biss in Deckelfarbe, Blatt + Stiel. */}
-            <Box component="svg" viewBox="0 0 22 22" sx={{ position: "absolute", top: "46%", left: "50%", transform: "translate(-50%,-50%)", width: 12, height: 12, opacity: 0.7 }}>
-              <circle cx="8" cy="13" r="6.4" fill={isBlocked && !away ? "#e5533d" : color} />
-              <circle cx="14.2" cy="13" r="7" fill={isBlocked && !away ? "#e5533d" : color} />
-              <circle cx="18" cy="8.5" r="3.8" fill="#d3d5d8" />
-              <rect x="10.8" y="2.4" width="1.4" height="4.2" rx="0.6" fill="#5c4835" transform="rotate(8 11.5 4.5)" />
-              <ellipse cx="12.8" cy="3.2" rx="3.2" ry="1.5" fill="#6ea05f" transform="rotate(-25 12.8 3.2)" />
+            {/* Apfel-Silhouette als ein einzelner, sauber gerundeter Pfad
+                (mit leichter Einbuchtung oben, wo der Stiel sitzt) statt
+                zweier grosser sich ueberlappender Kreise - die vorherige
+                Version sah bei der kleinen Groesse eher wie ein Delfin aus. */}
+            <Box component="svg" viewBox="0 0 22 22" sx={{ position: "absolute", top: "46%", left: "50%", transform: "translate(-50%,-50%)", width: 11, height: 11, opacity: 0.75 }}>
+              <path d="M11 6 C8.5 3 3.5 4.5 3.5 11 C3.5 16.5 7 19.5 11 18.7 C15 19.5 18.5 16.5 18.5 11 C18.5 4.5 13.5 3 11 6 Z" fill={isBlocked && !away ? "#e5533d" : color} />
+              <rect x="10.3" y="1.2" width="1.4" height="4" rx="0.6" fill="#5c4835" />
+              <ellipse cx="13.4" cy="2.6" rx="2.6" ry="1.3" fill="#6ea05f" transform="rotate(-20 13.4 2.6)" />
             </Box>
           </Box>
           {/* Podest (Draufsicht) */}
