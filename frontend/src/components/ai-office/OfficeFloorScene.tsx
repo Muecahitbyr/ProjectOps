@@ -251,14 +251,16 @@ const OfficeKitchen = memo(function OfficeKitchen({
 // kleiner Beistelltisch - damit tatsaechlich mehrere Personen gleichzeitig
 // dort liegen/schlafen koennen, statt sich einen einzigen Liegeplatz zu
 // teilen. Jedes Bett ist ein eigenes, reales Laufziel (registerBedRef).
+// Deutlich mehr Abstand zwischen den Betten als in der ersten Version
+// (waren vorher fast beruehrend nebeneinander).
 const BED_COUNT = 3;
 const OfficeChillArea = memo(function OfficeChillArea({ registerBedRef }: { registerBedRef: (index: number, el: HTMLDivElement | null) => void }) {
   return (
-    <Box sx={{ position: "relative", width: 290, maxWidth: "100%" }}>
+    <Box sx={{ position: "relative", width: 360, maxWidth: "100%" }}>
       <Box sx={{ fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.05em", color: "#6b5c47", textTransform: "uppercase", textAlign: "center", mb: 1.5 }}>
         🛏️ Chill Area
       </Box>
-      <Box sx={{ position: "relative", height: 90, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 1.5 }}>
+      <Box sx={{ position: "relative", height: 90, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 4 }}>
         {/* Einzelbetten - schlichter, flacher Stil (Video-Referenz): ein
             Kissen in Akzentfarbe auf dunkelgrauer Matratze. */}
         {Array.from({ length: BED_COUNT }, (_, i) => (
@@ -298,40 +300,85 @@ const OfficeChillArea = memo(function OfficeChillArea({ registerBedRef }: { regi
   );
 });
 
-// Leseecke: Buecherregal + Sessel - viertes Pausenziel, damit IDLE-Personen
-// beim Umherlaufen nicht auf leerer Flaeche stehen bleiben, sondern einen
-// echten Anlaufpunkt mit Zweck haben.
-const OfficeReadingCorner = memo(function OfficeReadingCorner({ booksRef }: { booksRef: (el: HTMLDivElement | null) => void }) {
+// Leseecke: groesseres Buecherregal + Leseecke-Couch mit SEAT_COUNT
+// einzelnen Sitzplaetzen - viertes Pausenziel, damit Personen nicht nur
+// einzeln stehend lesen, sondern zu mehreert nebeneinander auf der Couch
+// sitzen und lesen koennen. Jeder Sitzplatz ist ein eigenes, reales Laufziel
+// (registerSeatRef), genau wie die Betten in der Chill Area.
+const SEAT_COUNT = 3;
+const OfficeReadingCorner = memo(function OfficeReadingCorner({ registerSeatRef }: { registerSeatRef: (index: number, el: HTMLDivElement | null) => void }) {
   return (
-    <Box sx={{ position: "relative", width: 190, maxWidth: "100%" }}>
+    <Box sx={{ position: "relative", width: 300, maxWidth: "100%" }}>
       <Box sx={{ fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.05em", color: "#6b5c47", textTransform: "uppercase", textAlign: "center", mb: 1.5 }}>
         📚 Leseecke
       </Box>
-      <Box sx={{ position: "relative", height: 90, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 3 }}>
-        {/* Buecherregal */}
-        <Box sx={{ position: "relative", width: 44, height: 62, border: "3px solid #a8804a", borderRadius: 1, backgroundColor: "rgba(200,163,107,0.15)" }}>
-          <Box sx={{ position: "absolute", top: "33%", left: 0, right: 0, height: 3, backgroundColor: "#a8804a" }} />
-          <Box sx={{ position: "absolute", top: "66%", left: 0, right: 0, height: 3, backgroundColor: "#a8804a" }} />
-          <Box sx={{ position: "absolute", top: 4, left: 4, width: 5, height: 16, backgroundColor: "#e8927a" }} />
-          <Box sx={{ position: "absolute", top: 4, left: 11, width: 5, height: 14, backgroundColor: "#7fb3d5" }} />
-          <Box sx={{ position: "absolute", top: 6, left: 18, width: 5, height: 12, backgroundColor: "#8fbf7f" }} />
-          <Box sx={{ position: "absolute", top: 4, left: 25, width: 5, height: 16, backgroundColor: "#e0c168" }} />
-          <Box sx={{ position: "absolute", top: "38%", left: 4, width: 5, height: 14, backgroundColor: "#c98fd5" }} />
-          <Box sx={{ position: "absolute", top: "38%", left: 11, width: 5, height: 16, backgroundColor: "#7fb3d5" }} />
-          <Box sx={{ position: "absolute", top: "38%", left: 18, width: 5, height: 12, backgroundColor: "#e8927a" }} />
-          <Box sx={{ position: "absolute", bottom: 4, left: 6, width: 16, height: 6, borderRadius: "1px", backgroundColor: "#d9c48f" }} />
+      <Box sx={{ position: "relative", height: 100, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 4 }}>
+        {/* Buecherregal - groesser als zuvor */}
+        <Box sx={{ position: "relative", width: 56, height: 78, border: "3px solid #a8804a", borderRadius: 1, backgroundColor: "rgba(200,163,107,0.15)" }}>
+          <Box sx={{ position: "absolute", top: "25%", left: 0, right: 0, height: 3, backgroundColor: "#a8804a" }} />
+          <Box sx={{ position: "absolute", top: "50%", left: 0, right: 0, height: 3, backgroundColor: "#a8804a" }} />
+          <Box sx={{ position: "absolute", top: "75%", left: 0, right: 0, height: 3, backgroundColor: "#a8804a" }} />
+          <Box sx={{ position: "absolute", top: 4, left: 4, width: 6, height: 18, backgroundColor: "#e8927a" }} />
+          <Box sx={{ position: "absolute", top: 4, left: 13, width: 6, height: 16, backgroundColor: "#7fb3d5" }} />
+          <Box sx={{ position: "absolute", top: 6, left: 22, width: 6, height: 14, backgroundColor: "#8fbf7f" }} />
+          <Box sx={{ position: "absolute", top: 4, left: 31, width: 6, height: 18, backgroundColor: "#e0c168" }} />
+          <Box sx={{ position: "absolute", top: 4, left: 40, width: 6, height: 16, backgroundColor: "#c98fd5" }} />
+          <Box sx={{ position: "absolute", top: "29%", left: 4, width: 6, height: 16, backgroundColor: "#c98fd5" }} />
+          <Box sx={{ position: "absolute", top: "29%", left: 13, width: 6, height: 18, backgroundColor: "#7fb3d5" }} />
+          <Box sx={{ position: "absolute", top: "29%", left: 22, width: 6, height: 14, backgroundColor: "#e8927a" }} />
+          <Box sx={{ position: "absolute", top: "29%", left: 31, width: 6, height: 16, backgroundColor: "#8fbf7f" }} />
+          <Box sx={{ position: "absolute", bottom: 4, left: 6, width: 20, height: 7, borderRadius: "1px", backgroundColor: "#d9c48f" }} />
+          <Box sx={{ position: "absolute", bottom: 4, left: 28, width: 18, height: 7, borderRadius: "1px", backgroundColor: "#e0a870" }} />
         </Box>
-        {/* Sessel - reales Laufziel */}
-        <Box ref={booksRef} sx={{ position: "relative", width: 40, height: 34 }}>
-          <Box sx={{ position: "absolute", bottom: 0, width: "100%", height: 20, borderRadius: "6px", backgroundColor: "#8a6f52" }} />
-          <Box sx={{ position: "absolute", bottom: 12, width: "100%", height: 20, borderRadius: "6px 6px 3px 3px", backgroundColor: "#9c7f5f" }} />
-          <Box sx={{ position: "absolute", bottom: -5, left: 4, width: 4, height: 6, backgroundColor: "#5c4835", borderRadius: 1 }} />
-          <Box sx={{ position: "absolute", bottom: -5, right: 4, width: 4, height: 6, backgroundColor: "#5c4835", borderRadius: 1 }} />
+        {/* Leseecke-Couch mit 3 einzelnen Sitzplaetzen */}
+        <Box sx={{ position: "relative", width: 150, height: 30 }}>
+          <Box sx={{ position: "absolute", bottom: 0, width: "100%", height: 22, borderRadius: "10px", backgroundColor: "#8a6f52" }} />
+          <Box sx={{ position: "absolute", bottom: 15, width: "100%", height: 18, borderRadius: "10px 10px 4px 4px", backgroundColor: "#9c7f5f" }} />
+          {Array.from({ length: SEAT_COUNT }, (_, i) => (
+            <Box key={i} ref={(el: HTMLDivElement | null) => registerSeatRef(i, el)} sx={{ position: "absolute", bottom: 17, left: 8 + i * 46, width: 36, height: 14, borderRadius: "4px", backgroundColor: "#ac8f6f" }} />
+          ))}
+          <Box sx={{ position: "absolute", bottom: -5, left: 5, width: 4, height: 6, backgroundColor: "#5c4835", borderRadius: 1 }} />
+          <Box sx={{ position: "absolute", bottom: -5, right: 5, width: 4, height: 6, backgroundColor: "#5c4835", borderRadius: 1 }} />
         </Box>
       </Box>
     </Box>
   );
 });
+
+// Sitzende Figur fuer die Leseecke - eigene, einfache Silhouette (analog zu
+// OfficeLyingCharacter) statt einer gedrehten OfficeCharacter: kurze
+// angewinkelte Beine, aufrechter Oberkoerper, ein Buch in den Haenden.
+function OfficeSittingCharacter({ color }: { color: string }) {
+  const skin = "#e8b48a";
+  const hair = "#3b2a1a";
+  return (
+    <Box
+      sx={{
+        position: "relative",
+        width: 32,
+        height: 40,
+        animation: "office-sitting-breathe 3.2s ease-in-out infinite",
+        "@keyframes office-sitting-breathe": { "0%,100%": { transform: "scaleY(1)" }, "50%": { transform: "scaleY(0.985)" } },
+      }}
+    >
+      <Box component="svg" viewBox="0 0 32 40" sx={{ width: 32, height: 40, display: "block" }}>
+        {/* Angewinkelte Sitzbeine */}
+        <rect x="5" y="30" width="9" height="8" rx="3" fill="#2b333f" />
+        <rect x="18" y="30" width="9" height="8" rx="3" fill="#37414f" />
+        {/* Koerper */}
+        <rect x="6" y="14" width="20" height="18" rx="8" fill={color} />
+        {/* Buch in den Haenden */}
+        <rect x="9" y="20" width="14" height="10" rx="1" fill="#f5f0e6" stroke="#d8d0c0" strokeWidth="1" />
+        <rect x="15.5" y="20" width="1" height="10" fill="#d8d0c0" />
+        {/* Kopf, leicht nach unten geneigt (liest) */}
+        <circle cx="16" cy="9" r="9" fill={skin} />
+        <ellipse cx="16" cy="4.5" rx="9" ry="5" fill={hair} />
+        <path d="M11 11 q2 1.4 4 0" stroke="#3b2a1a" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+        <path d="M17 11 q2 1.4 4 0" stroke="#3b2a1a" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+      </Box>
+    </Box>
+  );
+}
 
 // Liegende Figur fuer die Chill Area - eigene, einfache Silhouette statt
 // einer gedrehten OfficeCharacter (deren Gliedmassen/Pivots auf die
@@ -385,14 +432,14 @@ function OfficeLyingCharacter({ color }: { color: string }) {
 // Echte, laufende Personen zwischen ihrem echten Schreibtisch und einem von
 // vier Zielen (Kaffee/Kuehlschrank/Chill Area/Leseecke) - Position wird per
 // getBoundingClientRect() der tatsaechlichen DOM-Elemente gemessen (kein
-// geratener/fixer Pfad), animiert per CSS-transition. Nur real IDLE Agenten
-// (echter Zustand: seit je nie ausgeloest) werden ausgewaehlt - keine
-// erfundene Aktivitaet fuer WORKING/BLOCKED/WAITING-Agenten, deren echter
-// Status damit nicht verfaelscht wird. Mehrere IDLE Agenten koennen
-// gleichzeitig unterwegs sein (nicht nur einer nach dem anderen) - "sie
-// muessen nicht standardmaessig am Platz sein". Jedes Ziel hat einen
-// echten Zweck (Kaffee holen/Kuehlschrank/liegen/lesen) statt aufs freie
-// Herumstehen auf leerer Flaeche.
+// geratener/fixer Pfad), animiert per CSS-transition. Auf Nutzerwunsch
+// duerfen alle Agenten ausser BLOCKED herumlaufen (Working/Waiting/
+// Completed/Idle) - einzig "kaputt" (brennender Schreibtisch) soll optisch
+// zaehlen, der sonstige Status ist fuer die Laufanimation irrelevant.
+// Mehrere Agenten koennen gleichzeitig unterwegs sein (nicht nur einer nach
+// dem anderen) - "sie muessen nicht standardmaessig am Platz sein". Jedes
+// Ziel hat einen echten Zweck (Kaffee holen/Kuehlschrank/liegen/lesen)
+// statt aufs freie Herumstehen auf leerer Flaeche.
 type WalkDestination = "coffee" | "fridge" | "chill" | "books";
 const DESTINATION_ITEM: Record<WalkDestination, string> = { coffee: "☕", fridge: "🥤", chill: "😌", books: "📖" };
 const MAX_CONCURRENT_WALKERS = 3;
@@ -409,10 +456,10 @@ interface WalkerState {
   agentId: string;
   color: string;
   destination: WalkDestination;
-  // Nur gesetzt, wenn destination === "chill" - welches der BED_COUNT
-  // Betten diese Person belegt/ansteuert, damit sich zwei Personen nicht
-  // dasselbe Bett teilen.
-  bedIndex?: number;
+  // Nur gesetzt bei destination === "chill" (welches Bett) oder "books"
+  // (welcher Sitzplatz) - damit sich zwei Personen nicht denselben Platz
+  // teilen. Reserviert schon beim Losgehen, nicht erst bei Ankunft.
+  slotIndex?: number;
   from: { x: number; y: number };
   to: { x: number; y: number };
   // "pos" ist bewusst vom Lauf-/Ankunfts-Status getrennt: sie treibt
@@ -491,10 +538,10 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
   const deskElsRef = useRef(new Map<string, HTMLDivElement>());
   const coffeeElRef = useRef<HTMLDivElement | null>(null);
   const fridgeElRef = useRef<HTMLDivElement | null>(null);
-  const booksElRef = useRef<HTMLDivElement | null>(null);
-  // Ein Ref pro Bett (statt einem einzelnen Chill-Ziel), damit mehrere
-  // Personen gleichzeitig auf unterschiedlichen Betten liegen koennen.
+  // Ein Ref pro Bett/Sitzplatz (statt einem einzelnen Ziel), damit mehrere
+  // Personen gleichzeitig liegen bzw. nebeneinander lesend sitzen koennen.
   const bedElsRef = useRef(new Map<number, HTMLDivElement>());
+  const seatElsRef = useRef(new Map<number, HTMLDivElement>());
   // Mehrere gleichzeitige Laeufer statt einem einzelnen - "sie muessen nicht
   // standardmaessig am Platz sein", jede real IDLE Person kann unabhaengig
   // unterwegs sein.
@@ -518,12 +565,13 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
   const registerFridgeRef = useCallback((el: HTMLDivElement | null) => {
     fridgeElRef.current = el;
   }, []);
-  const registerBooksRef = useCallback((el: HTMLDivElement | null) => {
-    booksElRef.current = el;
-  }, []);
   const registerBedRef = useCallback((index: number, el: HTMLDivElement | null) => {
     if (el) bedElsRef.current.set(index, el);
     else bedElsRef.current.delete(index);
+  }, []);
+  const registerSeatRef = useCallback((index: number, el: HTMLDivElement | null) => {
+    if (el) seatElsRef.current.set(index, el);
+    else seatElsRef.current.delete(index);
   }, []);
 
   // Periodisch: bis zu MAX_CONCURRENT_WALKERS real IDLE Personen sind
@@ -561,12 +609,16 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
       // Nicht bei jeder Gelegenheit sofort jemanden losschicken - staffelt
       // die Starts natuerlicher, statt dass immer alle auf einmal aufstehen.
       if (Math.random() > 0.6) return;
-      const idleCandidates = withColorRef.current.filter((x) => x.agent.status === "IDLE" && deskElsRef.current.has(x.agent.rule.id) && !current.has(x.agent.rule.id));
-      if (idleCandidates.length === 0) return;
+      // Auf Nutzerwunsch laufen alle Nicht-BLOCKED-Agenten herum, unabhaengig
+      // vom sonstigen Status (Working/Waiting/Completed/Idle) - einzig
+      // "kaputt" (BLOCKED, brennender Schreibtisch) soll optisch zaehlen,
+      // der Rest ist fuer die Laufanimation irrelevant.
+      const eligibleCandidates = withColorRef.current.filter((x) => x.agent.status !== "BLOCKED" && deskElsRef.current.has(x.agent.rule.id) && !current.has(x.agent.rule.id));
+      if (eligibleCandidates.length === 0) return;
 
       const destinations: WalkDestination[] = ["coffee", "fridge", "chill", "books"];
       const destination = destinations[Math.floor(Math.random() * destinations.length)]!;
-      const pick = idleCandidates[Math.floor(Math.random() * idleCandidates.length)]!;
+      const pick = eligibleCandidates[Math.floor(Math.random() * eligibleCandidates.length)]!;
       const agentId = pick.agent.rule.id;
       const deskEl = deskElsRef.current.get(agentId)!;
       const containerRect = containerRef.current.getBoundingClientRect();
@@ -574,19 +626,26 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
       const from = { x: deskRect.left + deskRect.width / 2 - containerRect.left, y: deskRect.bottom - containerRect.top - 10 };
 
       let to: { x: number; y: number };
-      let bedIndex: number | undefined;
-      if (destination === "chill") {
-        // Freies Bett suchen (keiner teilt sich ein Bett) - real gemessen,
-        // wird schon beim Losgehen reserviert (bedIndex bleibt fuer die
-        // gesamte Pause gesetzt).
-        const occupiedBeds = new Set(Array.from(current.values(), (w) => w.bedIndex).filter((i) => i !== undefined));
-        const freeBedIndex = Array.from({ length: BED_COUNT }, (_, i) => i).find((i) => !occupiedBeds.has(i) && bedElsRef.current.has(i));
-        if (freeBedIndex === undefined) return;
-        const bedRect = bedElsRef.current.get(freeBedIndex)!.getBoundingClientRect();
-        to = { x: bedRect.left + bedRect.width / 2 - containerRect.left, y: bedRect.bottom - containerRect.top - 14 };
-        bedIndex = freeBedIndex;
+      let slotIndex: number | undefined;
+      if (destination === "chill" || destination === "books") {
+        // Freien Platz suchen (Bett bzw. Sitzplatz) - keiner teilt sich
+        // einen Platz mit jemand anderem. Real gemessen, wird schon beim
+        // Losgehen reserviert (slotIndex bleibt fuer die gesamte Pause
+        // gesetzt, damit niemand sonst denselben Platz waehlt).
+        const slotEls = destination === "chill" ? bedElsRef.current : seatElsRef.current;
+        const slotCount = destination === "chill" ? BED_COUNT : SEAT_COUNT;
+        const occupied = new Set(
+          Array.from(current.values())
+            .filter((w) => w.destination === destination)
+            .map((w) => w.slotIndex),
+        );
+        const freeIndex = Array.from({ length: slotCount }, (_, i) => i).find((i) => !occupied.has(i) && slotEls.has(i));
+        if (freeIndex === undefined) return;
+        const slotRect = slotEls.get(freeIndex)!.getBoundingClientRect();
+        to = { x: slotRect.left + slotRect.width / 2 - containerRect.left, y: slotRect.bottom - containerRect.top - 14 };
+        slotIndex = freeIndex;
       } else {
-        const destinationEl = destination === "coffee" ? coffeeElRef.current : destination === "fridge" ? fridgeElRef.current : booksElRef.current;
+        const destinationEl = destination === "coffee" ? coffeeElRef.current : fridgeElRef.current;
         if (!destinationEl) return;
         const destRect = destinationEl.getBoundingClientRect();
         to = { x: destRect.left + destRect.width / 2 - containerRect.left, y: destRect.bottom - containerRect.top - 14 };
@@ -608,7 +667,7 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
       // waehrend sich die Figur noch sichtbar bewegte).
       setWalkers((prev) => {
         const copy = new Map(prev);
-        copy.set(agentId, { agentId, color: pick.color, destination, bedIndex, from, to, pos: from, durationMs, walking: true, atDestination: false });
+        copy.set(agentId, { agentId, color: pick.color, destination, slotIndex, from, to, pos: from, durationMs, walking: true, atDestination: false });
         return copy;
       });
       requestAnimationFrame(() => {
@@ -750,7 +809,7 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
         <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 5, mt: 4 }}>
           <OfficeKitchen coffeeRef={registerCoffeeRef} fridgeRef={registerFridgeRef} fridgeOpen={fridgeOpen} />
           <OfficeChillArea registerBedRef={registerBedRef} />
-          <OfficeReadingCorner booksRef={registerBooksRef} />
+          <OfficeReadingCorner registerSeatRef={registerSeatRef} />
         </Box>
       </Box>
 
@@ -758,23 +817,35 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
           echtem Gang-Zyklus waehrend der Bewegung (konstante Geschwindigkeit:
           Transition-Dauer aus der echten Distanz berechnet). Mehrere koennen
           gleichzeitig unterwegs sein. Am Ziel angekommen haelt die Person
-          kurz das zum Ziel passende Item (Kaffee/Snack aus dem Kuehlschrank/
-          Buch), oder legt sich in der Chill Area tatsaechlich auf ihr Bett -
-          das Zzz gibt es ausschliesslich dabei, nicht beim Stehen/Laufen. */}
-      {activeWalkers.map((walker) =>
-        walker.atDestination && walker.destination === "chill" ? (
-          <Box key={walker.agentId} sx={{ position: "absolute", left: walker.pos.x, top: walker.pos.y, transform: "translate(-52%, -30px)", transition: `left ${walker.durationMs}ms ease-in-out, top ${walker.durationMs}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
-            <OfficeLyingCharacter color={walker.color} />
-          </Box>
-        ) : (
+          kurz das zum Ziel passende Item (Kaffee/Snack aus dem
+          Kuehlschrank), legt sich in der Chill Area tatsaechlich auf ihr
+          Bett, oder setzt sich in der Leseecke auf die Couch und liest -
+          das Zzz gibt es ausschliesslich beim Liegen, nicht beim
+          Stehen/Laufen/Sitzen. */}
+      {activeWalkers.map((walker) => {
+        if (walker.atDestination && walker.destination === "chill") {
+          return (
+            <Box key={walker.agentId} sx={{ position: "absolute", left: walker.pos.x, top: walker.pos.y, transform: "translate(-52%, -30px)", transition: `left ${walker.durationMs}ms ease-in-out, top ${walker.durationMs}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
+              <OfficeLyingCharacter color={walker.color} />
+            </Box>
+          );
+        }
+        if (walker.atDestination && walker.destination === "books") {
+          return (
+            <Box key={walker.agentId} sx={{ position: "absolute", left: walker.pos.x, top: walker.pos.y, transform: "translate(-50%, -34px)", transition: `left ${walker.durationMs}ms ease-in-out, top ${walker.durationMs}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
+              <OfficeSittingCharacter color={walker.color} />
+            </Box>
+          );
+        }
+        return (
           <Box key={walker.agentId} sx={{ position: "absolute", left: walker.pos.x, top: walker.pos.y, transform: "translate(-50%, -100%)", transition: `left ${walker.durationMs}ms ease-in-out, top ${walker.durationMs}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
             {walker.atDestination && DESTINATION_ITEM[walker.destination] ? (
               <Box sx={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", fontSize: 18 }}>{DESTINATION_ITEM[walker.destination]}</Box>
             ) : null}
             <OfficeCharacter status="IDLE" walking={walker.walking} color={walker.color} label="Pause" onClick={() => undefined} tooltip="Pause" />
           </Box>
-        ),
-      )}
+        );
+      })}
     </Box>
   );
 });
