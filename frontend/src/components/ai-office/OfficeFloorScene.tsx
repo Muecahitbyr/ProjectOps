@@ -12,15 +12,30 @@ function colorForProject(projectId: string, order: string[]): string {
   return PROJECT_COLORS[idx % PROJECT_COLORS.length] ?? "#3b82f6";
 }
 
-function speechFor(agent: AgentSnapshot): string | null {
+// "kaputt" heisst hier zweierlei, beide real: entweder die Automation-Regel
+// selbst ist BLOCKED (ihre eigene Aktion ist fehlgeschlagen), oder das
+// zugehoerige Projekt hat echten kritischen Health-Status/offene Incidents
+// - selbst wenn die Regel-Aktion (z.B. "Snapshot on Check Failure") gerade
+// erfolgreich durchlaeuft. Beides soll den Schreibtisch brennen lassen,
+// sonst wuerde eine erfolgreich laufende Automation ein tatsaechlich
+// kaputtes Projekt optisch als "alles ok" verstecken.
+function isProjectBroken(agent: OfficeAgentWithProjectType): boolean {
+  return Boolean(agent.projectHealth?.critical) || Boolean(agent.projectHealth && agent.projectHealth.openIncidents > 0);
+}
+
+function speechFor(agent: OfficeAgentWithProjectType): string | null {
   if (agent.status === "WORKING") return agent.rule.action.replace(/_/g, " ").toLowerCase();
   if (agent.status === "WAITING") return "wartet auf Freigabe...";
   if (agent.status === "BLOCKED") return agent.latestExecution?.error ? agent.latestExecution.error.slice(0, 46) : "blockiert";
+  if (isProjectBroken(agent)) {
+    const n = agent.projectHealth?.openIncidents ?? 0;
+    return n > 0 ? `${n} offene${n === 1 ? "r" : ""} Incident${n === 1 ? "" : "s"}` : "Projekt kritisch";
+  }
   return null;
 }
 
 interface DeskProps {
-  agent: AgentSnapshot;
+  agent: OfficeAgentWithProjectType;
   color: string;
   away: boolean;
   onSelectAgent: (agent: AgentSnapshot) => void;
@@ -28,13 +43,15 @@ interface DeskProps {
 }
 
 // Ein Schreibtisch = eine echte Automation Rule (Phase 11): Tischplatte +
-// Vorderkante + Beine + MacBook. "Kaputt" (BLOCKED) wird bewusst dramatisch
-// dargestellt (brennender Schreibtisch + Rauch). "away" = die Person ist
-// gerade (Animation) in der Kueche - der Schreibtisch bleibt sichtbar, aber
+// Vorderkante + Beine + MacBook. "Kaputt" wird bewusst dramatisch
+// dargestellt (brennender Schreibtisch + Rauch) - ausgeloest durch BLOCKED
+// ODER echten kritischen Projekt-Zustand (isProjectBroken), nicht nur durch
+// eine fehlgeschlagene Automation-Ausfuehrung. "away" = die Person ist
+// gerade (Animation) unterwegs - der Schreibtisch bleibt sichtbar, aber
 // leer (Stuhl statt Person), keine erfundene Anwesenheit.
 const OfficeDesk = memo(function OfficeDesk({ agent, color, away, onSelectAgent, deskRef }: DeskProps) {
   const speech = speechFor(agent);
-  const isBlocked = agent.status === "BLOCKED";
+  const isBlocked = agent.status === "BLOCKED" || isProjectBroken(agent);
 
   return (
     <Box ref={deskRef} sx={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", width: 74 }}>
@@ -44,7 +61,7 @@ const OfficeDesk = memo(function OfficeDesk({ agent, color, away, onSelectAgent,
             <Box sx={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: isBlocked ? "#e5533d" : color, flexShrink: 0 }} />
             <Box sx={{ fontSize: "0.6rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}>{speech}</Box>
           </Box>
-          {/* Akzent-Balken unter der Blase nur bei BLOCKED - echtes
+          {/* Akzent-Balken unter der Blase nur bei "kaputt" - echtes
               Dringlichkeits-Signal, keine erfundene Prioritaet fuer andere
               Zustaende. */}
           {isBlocked ? <Box sx={{ height: 2.5, borderRadius: 2, mt: "2px", mx: 0.5, backgroundColor: "#e5533d" }} /> : null}
@@ -78,6 +95,16 @@ const OfficeDesk = memo(function OfficeDesk({ agent, color, away, onSelectAgent,
               <Box sx={{ fontSize: "0.7rem", fontWeight: 700 }}>{agent.rule.name}</Box>
               <Box sx={{ fontSize: "0.65rem" }}>{agent.rule.projectId}</Box>
               <Box sx={{ fontSize: "0.65rem" }}>{AGENT_STATUS_LABEL[agent.status]}</Box>
+              {/* Echter Projekt-Zustand zusaetzlich zum (moeglicherweise
+                  unveraenderten) Automation-Status - macht sichtbar, WARUM
+                  der Schreibtisch brennt, auch wenn die Regel selbst gerade
+                  erfolgreich laeuft. */}
+              {isProjectBroken(agent) ? (
+                <Box sx={{ fontSize: "0.65rem", color: "#e5533d", fontWeight: 700 }}>
+                  {agent.projectHealth?.critical ? "Projekt kritisch" : "Projekt"}
+                  {agent.projectHealth && agent.projectHealth.openIncidents > 0 ? ` · ${agent.projectHealth.openIncidents} offene Incidents` : ""}
+                </Box>
+              ) : null}
             </Box>
           }
         />
@@ -135,7 +162,7 @@ const OfficeDesk = memo(function OfficeDesk({ agent, color, away, onSelectAgent,
 
 interface ZoneProps {
   title: string;
-  agents: { agent: AgentSnapshot; color: string }[];
+  agents: { agent: OfficeAgentWithProjectType; color: string }[];
   emptyLabel?: string;
   accentColor: string;
   awayAgentIds: Set<string>;
@@ -532,6 +559,9 @@ function PlantHanging() {
 
 export interface OfficeAgentWithProjectType extends AgentSnapshot {
   projectType: "website" | "app";
+  // Echter Projekt-Zustand (dashboard/projects) - unabhaengig vom
+  // Automation-Rule-Status, siehe isProjectBroken()/speechFor() weiter oben.
+  projectHealth: { critical: boolean; openIncidents: number } | null;
 }
 
 interface OfficeFloorSceneProps {

@@ -40,6 +40,21 @@ export function AiOperationsOffice() {
     return map;
   }, [projectsQuery.data]);
 
+  // Echter Projekt-Zustand (bereits bestehender /api/dashboard/projects-
+  // Endpunkt, derselbe wie fuer projectTypeById) - unabhaengig vom
+  // Automation-Rule-Status: eine Regel kann selbst erfolgreich laufen
+  // (z.B. "Snapshot on Check Failure" schlaegt erfolgreich an), waehrend
+  // das Projekt, um das es eigentlich geht, echten kritischen Health-Status
+  // oder offene Incidents hat. Der brennende Schreibtisch soll BEIDES
+  // abdecken, nicht nur eine fehlgeschlagene Automation-Ausfuehrung.
+  const projectHealthById = useMemo(() => {
+    const map = new Map<string, { critical: boolean; openIncidents: number }>();
+    for (const project of projectsQuery.data ?? []) {
+      map.set(project.id, { critical: project.health.status === "critical", openIncidents: project.openIncidents });
+    }
+    return map;
+  }, [projectsQuery.data]);
+
   const agents = useMemo(
     () => buildAgentSnapshots(rulesQuery.data ?? [], actionsQuery.data ?? [], executionsQuery.data ?? []),
     [rulesQuery.data, actionsQuery.data, executionsQuery.data],
@@ -50,8 +65,13 @@ export function AiOperationsOffice() {
   // alle bestehenden Projekte laufen daher unter "Meine Projekte", nach
   // echtem project.type (website/mobile-app/api) in Apps/Webseiten sortiert.
   const agentsWithType: OfficeAgentWithProjectType[] = useMemo(
-    () => agents.map((agent) => ({ ...agent, projectType: projectTypeById.get(agent.rule.projectId) === "website" ? "website" : "app" })),
-    [agents, projectTypeById],
+    () =>
+      agents.map((agent) => ({
+        ...agent,
+        projectType: projectTypeById.get(agent.rule.projectId) === "website" ? "website" : "app",
+        projectHealth: projectHealthById.get(agent.rule.projectId) ?? null,
+      })),
+    [agents, projectTypeById, projectHealthById],
   );
 
   const handleSelectAgent = useCallback((agent: AgentSnapshot) => setSelection({ type: "agent", agent }), []);
