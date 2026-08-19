@@ -4,6 +4,7 @@ import Tooltip from "@mui/material/Tooltip";
 import { OfficeCharacter } from "./OfficeCharacter";
 import { AGENT_STATUS_LABEL } from "./officeConfig";
 import type { AgentSnapshot } from "./officeConfig";
+import type { Incident } from "../../types/incident.types";
 
 const PROJECT_COLORS = ["#3b82f6", "#f97316", "#10b981", "#a855f7", "#eab308", "#ec4899", "#14b8a6"];
 
@@ -34,11 +35,92 @@ function speechFor(agent: OfficeAgentWithProjectType): string | null {
   return null;
 }
 
+// Realistischeres Feuer statt eines einzelnen 🔥-Emojis: drei uebereinander
+// liegende, unterschiedlich grosse Flammen-Silhouetten (dunkelrot -> orange
+// -> gelbweisser Kern) mit je eigener, versetzter Flacker-Animation
+// (Skalierung + leichtes Kippen, keine synchron "atmende" Einzelform), dazu
+// ein weicher Glutschein dahinter und mehrere einzeln aufsteigende
+// Rauchpartikel statt eines einzigen 💨-Emojis.
+function OfficeFire() {
+  return (
+    <Box sx={{ position: "absolute", bottom: 42, zIndex: 3, width: 26, height: 34, pointerEvents: "none" }}>
+      {/* Glutschein */}
+      <Box
+        sx={{
+          position: "absolute",
+          bottom: 2,
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: 30,
+          height: 22,
+          borderRadius: "50%",
+          background: "radial-gradient(ellipse, rgba(255,140,40,0.55) 0%, rgba(255,140,40,0) 70%)",
+          animation: "office-fire-glow 1.1s ease-in-out infinite",
+          "@keyframes office-fire-glow": { "0%,100%": { opacity: 0.6 }, "50%": { opacity: 1 } },
+        }}
+      />
+      <Box
+        component="svg"
+        viewBox="0 0 26 34"
+        sx={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          filter: "drop-shadow(0 0 6px rgba(255,110,20,0.7))",
+        }}
+      >
+        <path
+          d="M13 1C13 1 5 11 5 20C5 27 8.5 32 13 32C17.5 32 21 27 21 20C21 11 13 1 13 1Z"
+          fill="#c6401f"
+          style={{ transformOrigin: "13px 32px", animation: "office-flame-outer 0.55s ease-in-out infinite alternate" }}
+        />
+        <path
+          d="M13 6C13 6 8 13.5 8 20C8 24.5 10.2 28 13 28C15.8 28 18 24.5 18 20C18 13.5 13 6 13 6Z"
+          fill="#f2822f"
+          style={{ transformOrigin: "13px 28px", animation: "office-flame-mid 0.4s ease-in-out infinite alternate" }}
+        />
+        <path
+          d="M13 13C13 13 10.3 17 10.3 20.5C10.3 23.3 11.5 25.5 13 25.5C14.5 25.5 15.7 23.3 15.7 20.5C15.7 17 13 13 13 13Z"
+          fill="#fbd357"
+          style={{ transformOrigin: "13px 25.5px", animation: "office-flame-core 0.32s ease-in-out infinite alternate" }}
+        />
+        <style>{`
+          @keyframes office-flame-outer { from { transform: scaleY(1) scaleX(1) rotate(-2deg); } to { transform: scaleY(1.08) scaleX(0.94) rotate(2deg); } }
+          @keyframes office-flame-mid { from { transform: scaleY(0.96) scaleX(1.05) rotate(2deg); } to { transform: scaleY(1.1) scaleX(0.9) rotate(-3deg); } }
+          @keyframes office-flame-core { from { transform: scaleY(1.05) rotate(-3deg); } to { transform: scaleY(0.9) rotate(3deg); } }
+        `}</style>
+      </Box>
+      {/* Aufsteigende Rauchpartikel, zeitversetzt statt einem statischen Emoji */}
+      {[0, 1, 2].map((i) => (
+        <Box
+          key={i}
+          sx={{
+            position: "absolute",
+            bottom: 30,
+            left: `calc(50% + ${(i - 1) * 4}px)`,
+            width: 5 + i,
+            height: 5 + i,
+            borderRadius: "50%",
+            backgroundColor: "rgba(90,90,90,0.45)",
+            filter: "blur(0.5px)",
+            animation: `office-smoke-rise-${i} ${1.8 + i * 0.3}s ease-out infinite`,
+            animationDelay: `${i * 0.5}s`,
+            "@keyframes office-smoke-rise-0": { "0%": { transform: "translate(0,0) scale(0.6)", opacity: 0.45 }, "100%": { transform: "translate(-6px,-26px) scale(1.6)", opacity: 0 } },
+            "@keyframes office-smoke-rise-1": { "0%": { transform: "translate(0,0) scale(0.6)", opacity: 0.4 }, "100%": { transform: "translate(3px,-30px) scale(1.8)", opacity: 0 } },
+            "@keyframes office-smoke-rise-2": { "0%": { transform: "translate(0,0) scale(0.6)", opacity: 0.4 }, "100%": { transform: "translate(8px,-28px) scale(1.7)", opacity: 0 } },
+          }}
+        />
+      ))}
+    </Box>
+  );
+}
+
 interface DeskProps {
   agent: OfficeAgentWithProjectType;
   color: string;
   away: boolean;
-  onSelectAgent: (agent: AgentSnapshot) => void;
+  onSelectAgent: (agent: OfficeAgentWithProjectType) => void;
   deskRef: (el: HTMLDivElement | null) => void;
 }
 
@@ -68,16 +150,11 @@ const OfficeDesk = memo(function OfficeDesk({ agent, color, away, onSelectAgent,
         </Box>
       ) : null}
 
-      {isBlocked && !away ? (
-        <>
-          <Box sx={{ position: "absolute", bottom: 42, fontSize: 22, zIndex: 3, animation: "office-fire-flicker 0.6s ease-in-out infinite alternate", filter: "drop-shadow(0 0 10px rgba(255,120,20,0.85))", "@keyframes office-fire-flicker": { from: { transform: "scale(1) translateY(0) rotate(-3deg)", opacity: 0.9 }, to: { transform: "scale(1.15) translateY(-3px) rotate(3deg)", opacity: 1 } } }}>
-            🔥
-          </Box>
-          <Box sx={{ position: "absolute", bottom: 62, left: "62%", fontSize: 13, opacity: 0.5, zIndex: 3, animation: "office-smoke-rise 2s ease-in infinite", "@keyframes office-smoke-rise": { "0%": { transform: "translateY(0) scale(0.7)", opacity: 0.5 }, "100%": { transform: "translateY(-22px) scale(1.3)", opacity: 0 } } }}>
-            💨
-          </Box>
-        </>
-      ) : null}
+      {/* Feuer bleibt auch waehrend "away" sichtbar - ein brennender
+          Schreibtisch loescht sich nicht von selbst, nur weil die Person
+          gerade Kaffee holt. Der Status des Schreibtischs/Projekts ist
+          unabhaengig davon, ob die Person gerade dort sitzt. */}
+      {isBlocked ? <OfficeFire /> : null}
 
       {away ? (
         <Box sx={{ width: 44, height: 48, display: "flex", alignItems: "flex-end", justifyContent: "center", opacity: 0.55 }}>
@@ -140,13 +217,13 @@ const OfficeDesk = memo(function OfficeDesk({ agent, color, away, onSelectAgent,
                 zweier grosser sich ueberlappender Kreise - die vorherige
                 Version sah bei der kleinen Groesse eher wie ein Delfin aus. */}
             <Box component="svg" viewBox="0 0 22 22" sx={{ position: "absolute", top: "46%", left: "50%", transform: "translate(-50%,-50%)", width: 11, height: 11, opacity: 0.75 }}>
-              <path d="M11 6 C8.5 3 3.5 4.5 3.5 11 C3.5 16.5 7 19.5 11 18.7 C15 19.5 18.5 16.5 18.5 11 C18.5 4.5 13.5 3 11 6 Z" fill={isBlocked && !away ? "#e5533d" : color} />
+              <path d="M11 6 C8.5 3 3.5 4.5 3.5 11 C3.5 16.5 7 19.5 11 18.7 C15 19.5 18.5 16.5 18.5 11 C18.5 4.5 13.5 3 11 6 Z" fill={isBlocked ? "#e5533d" : color} />
               <rect x="10.3" y="1.2" width="1.4" height="4" rx="0.6" fill="#5c4835" />
               <ellipse cx="13.4" cy="2.6" rx="2.6" ry="1.3" fill="#6ea05f" transform="rotate(-20 13.4 2.6)" />
             </Box>
           </Box>
           {/* Podest (Draufsicht) */}
-          <Box sx={{ width: 58, height: 15, borderRadius: "7px", backgroundColor: isBlocked && !away ? "#f0cdbd" : "#f7f3ea", border: "1px solid rgba(0,0,0,0.06)", boxShadow: isBlocked && !away ? "0 4px 14px rgba(220,80,30,0.4)" : "0 3px 8px rgba(0,0,0,0.14)" }} />
+          <Box sx={{ width: 58, height: 15, borderRadius: "7px", backgroundColor: isBlocked ? "#f0cdbd" : "#f7f3ea", border: "1px solid rgba(0,0,0,0.06)", boxShadow: isBlocked ? "0 4px 14px rgba(220,80,30,0.4)" : "0 3px 8px rgba(0,0,0,0.14)" }} />
           <Box sx={{ position: "absolute", bottom: -8, left: 5, width: 2.5, height: 8, backgroundColor: "#9aa1a8" }} />
           <Box sx={{ position: "absolute", bottom: -8, right: 5, width: 2.5, height: 8, backgroundColor: "#9aa1a8" }} />
         </Box>
@@ -166,7 +243,7 @@ interface ZoneProps {
   emptyLabel?: string;
   accentColor: string;
   awayAgentIds: Set<string>;
-  onSelectAgent: (agent: AgentSnapshot) => void;
+  onSelectAgent: (agent: OfficeAgentWithProjectType) => void;
   registerDeskRef: (agentId: string, el: HTMLDivElement | null) => void;
 }
 
@@ -562,11 +639,15 @@ export interface OfficeAgentWithProjectType extends AgentSnapshot {
   // Echter Projekt-Zustand (dashboard/projects) - unabhaengig vom
   // Automation-Rule-Status, siehe isProjectBroken()/speechFor() weiter oben.
   projectHealth: { critical: boolean; openIncidents: number } | null;
+  // Echte offene Incidents dieses Projekts (api/incidents) - der konkrete
+  // Grund, der im Detail-Drawer beim Klick auf einen brennenden
+  // Schreibtisch angezeigt wird, statt nur eines Zaehlers.
+  openIncidents: Incident[];
 }
 
 interface OfficeFloorSceneProps {
   agents: OfficeAgentWithProjectType[];
-  onSelectAgent: (agent: AgentSnapshot) => void;
+  onSelectAgent: (agent: OfficeAgentWithProjectType) => void;
 }
 
 // Das gesamte Buero - EIN durchgehender Raum, gegliedert nach echter

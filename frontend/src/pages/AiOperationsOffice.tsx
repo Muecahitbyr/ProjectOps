@@ -6,12 +6,13 @@ import { useProjectsHealth } from "../hooks/useProjects";
 import { useAutomationRules } from "../hooks/useAutomationRules";
 import { useAutomationActions } from "../hooks/useAutomationActions";
 import { useAutomationExecutions } from "../hooks/useAutomationExecutions";
+import { useIncidents } from "../hooks/useIncidents";
+import type { Incident } from "../types/incident.types";
 import { OfficeFloorScene } from "../components/ai-office/OfficeFloorScene";
 import type { OfficeAgentWithProjectType } from "../components/ai-office/OfficeFloorScene";
 import { OfficeDetailDrawer } from "../components/ai-office/OfficeDetailDrawer";
 import type { OfficeSelection } from "../components/ai-office/OfficeDetailDrawer";
 import { buildAgentSnapshots } from "../components/ai-office/officeConfig";
-import type { AgentSnapshot } from "../components/ai-office/officeConfig";
 import { getErrorMessage } from "../utils/getErrorMessage";
 
 // "KI-Büro" - auf ausdruecklichen Nutzerwunsch NUR die reine Buero-
@@ -33,6 +34,11 @@ export function AiOperationsOffice() {
   const rulesQuery = useAutomationRules();
   const actionsQuery = useAutomationActions();
   const executionsQuery = useAutomationExecutions({ limit: 200 });
+  // Echte offene Incidents (bereits bestehender /api/incidents-Endpunkt,
+  // Phase 21) - liefert den tatsaechlichen Grund ("wieso brennt es"), nicht
+  // nur einen Zaehler. Nicht nach Organisation gefiltert, dieselbe "Shared
+  // Ops Console"-Konvention wie die anderen Queries hier.
+  const incidentsQuery = useIncidents({ resolved: false, limit: 200 });
 
   const projectTypeById = useMemo(() => {
     const map = new Map<string, string>();
@@ -55,6 +61,19 @@ export function AiOperationsOffice() {
     return map;
   }, [projectsQuery.data]);
 
+  // Echte offene Incidents je Projekt gruppiert - das ist der konkrete Grund,
+  // der beim Klick auf einen brennenden Schreibtisch angezeigt wird (siehe
+  // OfficeDetailDrawer), statt nur "Projekt kritisch" ohne Erklaerung.
+  const openIncidentsByProject = useMemo(() => {
+    const map = new Map<string, Incident[]>();
+    for (const incident of incidentsQuery.data ?? []) {
+      const list = map.get(incident.projectId);
+      if (list) list.push(incident);
+      else map.set(incident.projectId, [incident]);
+    }
+    return map;
+  }, [incidentsQuery.data]);
+
   const agents = useMemo(
     () => buildAgentSnapshots(rulesQuery.data ?? [], actionsQuery.data ?? [], executionsQuery.data ?? []),
     [rulesQuery.data, actionsQuery.data, executionsQuery.data],
@@ -70,15 +89,17 @@ export function AiOperationsOffice() {
         ...agent,
         projectType: projectTypeById.get(agent.rule.projectId) === "website" ? "website" : "app",
         projectHealth: projectHealthById.get(agent.rule.projectId) ?? null,
+        openIncidents: openIncidentsByProject.get(agent.rule.projectId) ?? [],
       })),
-    [agents, projectTypeById, projectHealthById],
+    [agents, projectTypeById, projectHealthById, openIncidentsByProject],
   );
 
-  const handleSelectAgent = useCallback((agent: AgentSnapshot) => setSelection({ type: "agent", agent }), []);
+  const handleSelectAgent = useCallback((agent: OfficeAgentWithProjectType) => setSelection({ type: "agent", agent }), []);
   const handleCloseDrawer = useCallback(() => setSelection(null), []);
 
-  const isLoading = projectsQuery.isLoading || rulesQuery.isLoading || actionsQuery.isLoading || executionsQuery.isLoading;
-  const firstError = projectsQuery.error ?? rulesQuery.error ?? actionsQuery.error ?? executionsQuery.error;
+  const isLoading =
+    projectsQuery.isLoading || rulesQuery.isLoading || actionsQuery.isLoading || executionsQuery.isLoading || incidentsQuery.isLoading;
+  const firstError = projectsQuery.error ?? rulesQuery.error ?? actionsQuery.error ?? executionsQuery.error ?? incidentsQuery.error;
 
   return (
     <PageContainer title="KI-Büro">

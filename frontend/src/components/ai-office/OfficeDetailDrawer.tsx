@@ -8,12 +8,12 @@ import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import { AGENT_STATUS_COLOR, AGENT_STATUS_LABEL } from "./officeConfig";
-import type { AgentSnapshot } from "./officeConfig";
+import type { OfficeAgentWithProjectType } from "./OfficeFloorScene";
 import { severityColors } from "../../theme/statusColors";
 import { formatDateTime, formatDuration } from "../../utils/formatters";
 import type { AttentionItem } from "../../types/attention.types";
 
-export type OfficeSelection = { type: "agent"; agent: AgentSnapshot } | { type: "task"; task: AttentionItem } | null;
+export type OfficeSelection = { type: "agent"; agent: OfficeAgentWithProjectType } | { type: "task"; task: AttentionItem } | null;
 
 interface OfficeDetailDrawerProps {
   selection: OfficeSelection;
@@ -56,12 +56,60 @@ function DrawerHeader({ title, onClose }: { title: string; onClose: () => void }
   );
 }
 
-function AgentDetail({ agent, onClose }: { agent: AgentSnapshot; onClose: () => void }) {
+function AgentDetail({ agent, onClose }: { agent: OfficeAgentWithProjectType; onClose: () => void }) {
   const color = AGENT_STATUS_COLOR[agent.status];
+  const isBlocked = agent.status === "BLOCKED";
+  const isProjectBroken = Boolean(agent.projectHealth?.critical) || agent.openIncidents.length > 0;
   return (
     <Box>
       <DrawerHeader title={agent.rule.name} onClose={onClose} />
       <Chip label={AGENT_STATUS_LABEL[agent.status]} sx={{ backgroundColor: `${color}1f`, color, fontWeight: 600, mb: 2 }} />
+
+      {/* Der konkrete Grund, warum der Schreibtisch brennt (BLOCKED-Status
+          und/oder echte offene Incidents) - direkt oben, bevor die
+          restlichen technischen Details der Automation-Regel. */}
+      {isBlocked || isProjectBroken ? (
+        <Box sx={{ mb: 2, p: 1.5, borderRadius: 2, backgroundColor: "#fdeceA", border: "1px solid #f3b8a8" }}>
+          <Typography variant="overline" sx={{ color: "#c0392b", fontWeight: 800, letterSpacing: "0.05em" }}>
+            🔥 Warum brennt der Schreibtisch?
+          </Typography>
+          <Stack spacing={1} sx={{ mt: 1 }}>
+            {isBlocked ? (
+              <Typography variant="body2" sx={{ color: "#7a2e1f" }}>
+                Die Automation-Regel selbst ist blockiert:{" "}
+                <strong>{agent.latestExecution?.error ?? "Letzte Ausführung fehlgeschlagen"}</strong>
+              </Typography>
+            ) : null}
+            {agent.openIncidents.length > 0 ? (
+              <Box>
+                <Typography variant="body2" sx={{ color: "#7a2e1f", mb: 0.5 }}>
+                  {agent.openIncidents.length} offene{agent.openIncidents.length === 1 ? "r" : ""} Incident
+                  {agent.openIncidents.length === 1 ? "" : "s"} im Projekt <strong>{agent.rule.projectId}</strong>:
+                </Typography>
+                <Stack spacing={0.5}>
+                  {agent.openIncidents.map((incident) => (
+                    <Stack key={incident.id} direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                      <Chip
+                        label={incident.severity}
+                        size="small"
+                        sx={{ backgroundColor: `${severityColors[incident.severity]}1f`, color: severityColors[incident.severity], fontWeight: 700, height: 18, fontSize: "0.62rem" }}
+                      />
+                      <Typography variant="body2" sx={{ color: "#4a2e26" }}>
+                        {incident.title}
+                      </Typography>
+                    </Stack>
+                  ))}
+                </Stack>
+              </Box>
+            ) : agent.projectHealth?.critical ? (
+              <Typography variant="body2" sx={{ color: "#7a2e1f" }}>
+                Projekt-Health-Status ist kritisch (kein einzelner offener Incident, aber Checks schlagen fehl).
+              </Typography>
+            ) : null}
+          </Stack>
+        </Box>
+      ) : null}
+
       <Stack spacing={1.5}>
         <Row label="Role" value={agent.rule.action.replace(/_/g, " ")} />
         <Row label="Trigger" value={agent.rule.trigger.replace(/_/g, " ")} />
