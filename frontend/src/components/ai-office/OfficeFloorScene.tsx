@@ -83,21 +83,44 @@ const OfficeDesk = memo(function OfficeDesk({ agent, color, away, onSelectAgent,
         />
       )}
 
-      {/* Schreibtisch: cremeweisses Podest + Monitor-Pfosten mit Mini-Chart
-          statt Holzton-Tisch + MacBook (Video-Referenz: "KI-Büro"-Style von
-          ki.laurin) + echtes (gekuerztes) Regel-Label darunter statt einer
-          erfundenen Abteilung. Monitor haengt absolut ueber dem Podest, damit
-          die bewaehrte Character-Podest-Ausrichtung (mt: -0.5) unveraendert
-          bleibt. */}
+      {/* Schreibtisch: cremeweisses Podest + aufgeklapptes MacBook, dessen
+          Deckel-Rueckseite zum Betrachter zeigt (der Bildschirm ist zur
+          Person hin aufgeklappt - man sieht also nur den Deckel von hinten,
+          wie bei einer Person, die tatsaechlich am Laptop sitzt). Der
+          Schreibtisch ueberlappt die Figur jetzt deutlich mehr (mt) und
+          liegt mit hoeherem zIndex davor, sodass die Person sichtbar
+          "dahinter/darunter" sitzt - nur Gesicht + ein kleiner Rest der
+          Schultern schauen noch drueber. */}
       <Tooltip title={AGENT_STATUS_LABEL[agent.status]} enterDelay={400}>
-        <Box onClick={() => onSelectAgent(agent)} sx={{ position: "relative", mt: -0.5, cursor: "pointer" }}>
-          <Box sx={{ position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)", mb: "2px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <Box sx={{ width: 17, height: 12, borderRadius: "2px", backgroundColor: isBlocked && !away ? "#5c261b" : "#2b2d31", border: "1px solid #47494e", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "1.5px", p: "2px" }}>
-              {[4, 7, 5].map((h, i) => (
-                <Box key={i} sx={{ width: 2, height: h, backgroundColor: isBlocked && !away ? "#e5533d" : color, opacity: 0.9, borderRadius: "0.5px" }} />
-              ))}
-            </Box>
-            <Box sx={{ width: 2, height: 6, backgroundColor: "#9aa1a8" }} />
+        <Box onClick={() => onSelectAgent(agent)} sx={{ position: "relative", mt: -1.25, zIndex: 2, cursor: "pointer" }}>
+          {/* MacBook-Deckel (Rueckseite), steht auf dem Podest */}
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: 15,
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: 34,
+              height: 24,
+              borderRadius: "3px 3px 1px 1px",
+              background: "linear-gradient(180deg,#e6e8eb,#c7c9cc)",
+              border: "1px solid #a9acb0",
+              boxShadow: "0 3px 8px rgba(0,0,0,0.22)",
+            }}
+          >
+            <Box
+              sx={{
+                position: "absolute",
+                top: "48%",
+                left: "50%",
+                transform: "translate(-50%,-50%)",
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                backgroundColor: isBlocked && !away ? "#e5533d" : color,
+                opacity: 0.6,
+              }}
+            />
           </Box>
           {/* Podest (Draufsicht) */}
           <Box sx={{ width: 58, height: 15, borderRadius: "7px", backgroundColor: isBlocked && !away ? "#f0cdbd" : "#f7f3ea", border: "1px solid rgba(0,0,0,0.06)", boxShadow: isBlocked && !away ? "0 4px 14px rgba(220,80,30,0.4)" : "0 3px 8px rgba(0,0,0,0.14)" }} />
