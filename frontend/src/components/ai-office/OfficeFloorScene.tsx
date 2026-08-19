@@ -35,83 +35,70 @@ function speechFor(agent: OfficeAgentWithProjectType): string | null {
   return null;
 }
 
-// Realistischeres Feuer statt eines einzelnen 🔥-Emojis: drei uebereinander
-// liegende, unterschiedlich grosse Flammen-Silhouetten (dunkelrot -> orange
-// -> gelbweisser Kern) mit je eigener, versetzter Flacker-Animation
-// (Skalierung + leichtes Kippen, keine synchron "atmende" Einzelform), dazu
-// ein weicher Glutschein dahinter und mehrere einzeln aufsteigende
-// Rauchpartikel statt eines einzigen 💨-Emojis.
-function OfficeFire() {
+// Rotierendes Alarm-Blinklicht statt Feuer (Nutzer-Feedback: die Flamme sah
+// schlecht aus) - wie ein Rechenzentrum-/Einsatzfahrzeug-Warnlicht: rote
+// Kuppel auf einem Sockel, ein rotierender Lichtkegel (conic-gradient) faehrt
+// darum herum, dazu ein pulsierender Glutschein. Eindeutiges, "cooles"
+// Alarm-Signal statt eines Feuers, passt thematisch besser zu einem
+// IT-Ops-Buero ("Systemalarm" statt "brennender Tisch").
+function OfficeAlarmBeacon() {
   return (
-    <Box sx={{ position: "absolute", bottom: 42, zIndex: 3, width: 26, height: 34, pointerEvents: "none" }}>
+    <Box sx={{ position: "absolute", bottom: 58, zIndex: 3, width: 30, height: 34, pointerEvents: "none" }}>
       {/* Glutschein */}
       <Box
         sx={{
           position: "absolute",
-          bottom: 2,
+          bottom: 6,
           left: "50%",
           transform: "translateX(-50%)",
-          width: 30,
-          height: 22,
+          width: 34,
+          height: 26,
           borderRadius: "50%",
-          background: "radial-gradient(ellipse, rgba(255,140,40,0.55) 0%, rgba(255,140,40,0) 70%)",
-          animation: "office-fire-glow 1.1s ease-in-out infinite",
-          "@keyframes office-fire-glow": { "0%,100%": { opacity: 0.6 }, "50%": { opacity: 1 } },
+          background: "radial-gradient(ellipse, rgba(255,40,40,0.5) 0%, rgba(255,40,40,0) 70%)",
+          animation: "office-beacon-glow 1s ease-in-out infinite",
+          "@keyframes office-beacon-glow": { "0%,100%": { opacity: 0.5, transform: "translateX(-50%) scale(1)" }, "50%": { opacity: 1, transform: "translateX(-50%) scale(1.08)" } },
         }}
       />
+      {/* Rotierender Lichtkegel hinter der Kuppel */}
       <Box
-        component="svg"
-        viewBox="0 0 26 34"
         sx={{
           position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          filter: "drop-shadow(0 0 6px rgba(255,110,20,0.7))",
+          bottom: 8,
+          left: "50%",
+          width: 28,
+          height: 28,
+          transform: "translateX(-50%)",
+          borderRadius: "50%",
+          overflow: "hidden",
+          opacity: 0.8,
+          animation: "office-beacon-spin 1s linear infinite",
+          "@keyframes office-beacon-spin": { from: { transform: "translateX(-50%) rotate(0deg)" }, to: { transform: "translateX(-50%) rotate(360deg)" } },
         }}
       >
-        <path
-          d="M13 1C13 1 5 11 5 20C5 27 8.5 32 13 32C17.5 32 21 27 21 20C21 11 13 1 13 1Z"
-          fill="#c6401f"
-          style={{ transformOrigin: "13px 32px", animation: "office-flame-outer 0.55s ease-in-out infinite alternate" }}
-        />
-        <path
-          d="M13 6C13 6 8 13.5 8 20C8 24.5 10.2 28 13 28C15.8 28 18 24.5 18 20C18 13.5 13 6 13 6Z"
-          fill="#f2822f"
-          style={{ transformOrigin: "13px 28px", animation: "office-flame-mid 0.4s ease-in-out infinite alternate" }}
-        />
-        <path
-          d="M13 13C13 13 10.3 17 10.3 20.5C10.3 23.3 11.5 25.5 13 25.5C14.5 25.5 15.7 23.3 15.7 20.5C15.7 17 13 13 13 13Z"
-          fill="#fbd357"
-          style={{ transformOrigin: "13px 25.5px", animation: "office-flame-core 0.32s ease-in-out infinite alternate" }}
-        />
-        <style>{`
-          @keyframes office-flame-outer { from { transform: scaleY(1) scaleX(1) rotate(-2deg); } to { transform: scaleY(1.08) scaleX(0.94) rotate(2deg); } }
-          @keyframes office-flame-mid { from { transform: scaleY(0.96) scaleX(1.05) rotate(2deg); } to { transform: scaleY(1.1) scaleX(0.9) rotate(-3deg); } }
-          @keyframes office-flame-core { from { transform: scaleY(1.05) rotate(-3deg); } to { transform: scaleY(0.9) rotate(3deg); } }
-        `}</style>
+        <Box sx={{ position: "absolute", inset: 0, background: "conic-gradient(from 0deg, rgba(255,40,40,0.9) 0deg, rgba(255,40,40,0) 35deg, rgba(255,40,40,0) 325deg, rgba(255,40,40,0.9) 360deg)" }} />
       </Box>
-      {/* Aufsteigende Rauchpartikel, zeitversetzt statt einem statischen Emoji */}
-      {[0, 1, 2].map((i) => (
-        <Box
-          key={i}
-          sx={{
-            position: "absolute",
-            bottom: 30,
-            left: `calc(50% + ${(i - 1) * 4}px)`,
-            width: 5 + i,
-            height: 5 + i,
-            borderRadius: "50%",
-            backgroundColor: "rgba(90,90,90,0.45)",
-            filter: "blur(0.5px)",
-            animation: `office-smoke-rise-${i} ${1.8 + i * 0.3}s ease-out infinite`,
-            animationDelay: `${i * 0.5}s`,
-            "@keyframes office-smoke-rise-0": { "0%": { transform: "translate(0,0) scale(0.6)", opacity: 0.45 }, "100%": { transform: "translate(-6px,-26px) scale(1.6)", opacity: 0 } },
-            "@keyframes office-smoke-rise-1": { "0%": { transform: "translate(0,0) scale(0.6)", opacity: 0.4 }, "100%": { transform: "translate(3px,-30px) scale(1.8)", opacity: 0 } },
-            "@keyframes office-smoke-rise-2": { "0%": { transform: "translate(0,0) scale(0.6)", opacity: 0.4 }, "100%": { transform: "translate(8px,-28px) scale(1.7)", opacity: 0 } },
-          }}
-        />
-      ))}
+      {/* Sockel */}
+      <Box sx={{ position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)", width: 16, height: 5, borderRadius: "2px", backgroundColor: "#3a3d44" }} />
+      <Box sx={{ position: "absolute", bottom: 3, left: "50%", transform: "translateX(-50%)", width: 20, height: 4, borderRadius: "2px", backgroundColor: "#4a4d54" }} />
+      {/* Kuppel */}
+      <Box
+        sx={{
+          position: "absolute",
+          bottom: 6,
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: 17,
+          height: 13,
+          borderRadius: "50% 50% 0 0",
+          background: "linear-gradient(180deg,#ff7a68,#d6291a)",
+          boxShadow: "0 0 9px 2px rgba(255,60,40,0.75)",
+          animation: "office-beacon-pulse 1s ease-in-out infinite",
+          "@keyframes office-beacon-pulse": { "0%,100%": { opacity: 0.9 }, "50%": { opacity: 1, boxShadow: "0 0 14px 4px rgba(255,60,40,0.9)" } },
+        }}
+      >
+        {/* Glanzlicht */}
+        <Box sx={{ position: "absolute", top: 2, left: 3, width: 4, height: 5, borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.55)" }} />
+      </Box>
     </Box>
   );
 }
@@ -138,7 +125,7 @@ const OfficeDesk = memo(function OfficeDesk({ agent, color, away, onSelectAgent,
   return (
     <Box ref={deskRef} sx={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", width: 74 }}>
       {speech && !away ? (
-        <Box sx={{ position: "absolute", bottom: "100%", mb: 0.5, maxWidth: 130, zIndex: 4 }}>
+        <Box sx={{ position: "absolute", bottom: "100%", mb: 0.5, maxWidth: { xs: 92, sm: 130 }, zIndex: 4 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.6, backgroundColor: "#fff", color: "#2a2a2a", borderRadius: "10px 10px 10px 2px", px: 1, py: 0.5, boxShadow: "0 2px 6px rgba(0,0,0,0.18)", whiteSpace: "nowrap", overflow: "hidden" }}>
             <Box sx={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: isBlocked ? "#e5533d" : color, flexShrink: 0 }} />
             <Box sx={{ fontSize: "0.6rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}>{speech}</Box>
@@ -154,7 +141,7 @@ const OfficeDesk = memo(function OfficeDesk({ agent, color, away, onSelectAgent,
           Schreibtisch loescht sich nicht von selbst, nur weil die Person
           gerade Kaffee holt. Der Status des Schreibtischs/Projekts ist
           unabhaengig davon, ob die Person gerade dort sitzt. */}
-      {isBlocked ? <OfficeFire /> : null}
+      {isBlocked ? <OfficeAlarmBeacon /> : null}
 
       {away ? (
         <Box sx={{ width: 44, height: 48, display: "flex", alignItems: "flex-end", justifyContent: "center", opacity: 0.55 }}>
@@ -165,12 +152,18 @@ const OfficeDesk = memo(function OfficeDesk({ agent, color, away, onSelectAgent,
         <OfficeCharacter
           status={agent.status}
           color={color}
-          label={agent.rule.name}
+          label={agent.projectName}
           onClick={() => onSelectAgent(agent)}
           tooltip={
             <Box>
-              <Box sx={{ fontSize: "0.7rem", fontWeight: 700 }}>{agent.rule.name}</Box>
-              <Box sx={{ fontSize: "0.65rem" }}>{agent.rule.projectId}</Box>
+              <Box sx={{ fontSize: "0.7rem", fontWeight: 700 }}>{agent.projectName}</Box>
+              {/* Bei zusammengefassten Schreibtischen ("2 in einem") zeigt
+                  der Tooltip zusaetzlich, wie viele echte Automation Rules
+                  dahinterstecken - keine Information geht durchs
+                  Zusammenfassen verloren. */}
+              {agent.groupedRules.length > 1 ? (
+                <Box sx={{ fontSize: "0.65rem" }}>{agent.groupedRules.length} Automation Rules</Box>
+              ) : null}
               <Box sx={{ fontSize: "0.65rem" }}>{AGENT_STATUS_LABEL[agent.status]}</Box>
               {/* Echter Projekt-Zustand zusaetzlich zum (moeglicherweise
                   unveraenderten) Automation-Status - macht sichtbar, WARUM
@@ -229,9 +222,11 @@ const OfficeDesk = memo(function OfficeDesk({ agent, color, away, onSelectAgent,
         </Box>
       </Tooltip>
 
-      {/* Echtes (gekuerztes) Label statt einer erfundenen Abteilung */}
-      <Box sx={{ mt: 0.75, fontSize: "0.5rem", fontWeight: 700, letterSpacing: "0.04em", color: "#8b7d68", textTransform: "uppercase", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 70, textAlign: "center" }}>
-        {agent.rule.name}
+      {/* Echtes, aus dem echten Projektnamen abgeleitetes Kuerzel (z.B.
+          "DriveConnect" -> "DC") statt des vollen, oft zu langen
+          Automation-Rule-Namens - kompakter, besonders auf dem Handy. */}
+      <Box sx={{ mt: 0.75, fontSize: "0.62rem", fontWeight: 800, letterSpacing: "0.04em", color: "#8b7d68", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 70, textAlign: "center" }}>
+        {agent.deskLabel}
       </Box>
     </Box>
   );
@@ -258,12 +253,17 @@ const OfficeZone = memo(function OfficeZone({ title, agents, emptyLabel, accentC
         <Box sx={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: accentColor }} />
         <Box sx={{ fontSize: "0.68rem", fontWeight: 800, letterSpacing: "0.05em", color: "#6b5c47", textTransform: "uppercase" }}>{title}</Box>
       </Box>
-      <Box sx={{ minHeight: 90, display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 2.5, px: 0.5 }}>
+      {/* Groesserer Zeilenabstand (rowGap) auf schmalen Breiten, wo Tische
+          in mehrere Zeilen umbrechen - die Sprechblase eines Tisches
+          "waechst" nach oben ueber seine Zeile hinaus (bottom:100%) und
+          wuerde bei zu knappem Zeilenabstand das Label der Zeile darueber
+          verdecken. */}
+      <Box sx={{ minHeight: 90, display: "flex", flexWrap: "wrap", alignItems: "flex-end", rowGap: { xs: 4.5, sm: 2.5 }, columnGap: 2.5, px: 0.5 }}>
         {agents.length === 0 ? (
           <Box sx={{ color: "#a3937a", fontSize: "0.72rem", fontStyle: "italic" }}>{emptyLabel ?? "Noch niemand hier"}</Box>
         ) : (
           agents.map(({ agent, color }) => (
-            <OfficeDesk key={agent.rule.id} agent={agent} color={color} away={awayAgentIds.has(agent.rule.id)} onSelectAgent={onSelectAgent} deskRef={(el) => registerDeskRef(agent.rule.id, el)} />
+            <OfficeDesk key={agent.deskId} agent={agent} color={color} away={awayAgentIds.has(agent.deskId)} onSelectAgent={onSelectAgent} deskRef={(el) => registerDeskRef(agent.deskId, el)} />
           ))
         )}
       </Box>
@@ -643,6 +643,21 @@ export interface OfficeAgentWithProjectType extends AgentSnapshot {
   // Grund, der im Detail-Drawer beim Klick auf einen brennenden
   // Schreibtisch angezeigt wird, statt nur eines Zaehlers.
   openIncidents: Incident[];
+  // Nutzerwunsch: "ein Schreibtisch pro Projekt" statt "ein Schreibtisch pro
+  // Automation Rule" (z.B. Rechno/bayar-solutions.de mit je 2 echten Regeln
+  // -> nur EIN Schreibtisch, der beide zusammenfasst). deskId ersetzt
+  // rule.id als stabile Identitaet fuer Key/Lauf-Ziel/Away-Tracking, da
+  // rule.id bei mehreren zusammengefassten Regeln nicht mehr eindeutig fuer
+  // "diesen Schreibtisch" waere.
+  deskId: string;
+  // Echter (nur gekuerzter) Projektname statt eines einzelnen Regelnamens -
+  // siehe abbreviateProjectName() in AiOperationsOffice.tsx.
+  deskLabel: string;
+  projectName: string;
+  // Alle echten Automation Rules, die dieser Schreibtisch zusammenfasst
+  // (>= 1 Eintrag) - der Detail-Drawer zeigt bei mehreren Eintraegen jede
+  // Regel einzeln ("2 in einem", nichts wird versteckt).
+  groupedRules: AgentSnapshot[];
 }
 
 interface OfficeFloorSceneProps {
@@ -743,13 +758,13 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
       // vom sonstigen Status (Working/Waiting/Completed/Idle) - einzig
       // "kaputt" (BLOCKED, brennender Schreibtisch) soll optisch zaehlen,
       // der Rest ist fuer die Laufanimation irrelevant.
-      const eligibleCandidates = withColorRef.current.filter((x) => x.agent.status !== "BLOCKED" && deskElsRef.current.has(x.agent.rule.id) && !current.has(x.agent.rule.id));
+      const eligibleCandidates = withColorRef.current.filter((x) => x.agent.status !== "BLOCKED" && deskElsRef.current.has(x.agent.deskId) && !current.has(x.agent.deskId));
       if (eligibleCandidates.length === 0) return;
 
       const destinations: WalkDestination[] = ["coffee", "fridge", "chill", "books"];
       const destination = destinations[Math.floor(Math.random() * destinations.length)]!;
       const pick = eligibleCandidates[Math.floor(Math.random() * eligibleCandidates.length)]!;
-      const agentId = pick.agent.rule.id;
+      const agentId = pick.agent.deskId;
       const deskEl = deskElsRef.current.get(agentId)!;
       const containerRect = containerRef.current.getBoundingClientRect();
       const deskRect = deskEl.getBoundingClientRect();
@@ -837,18 +852,41 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
         border: "1px solid rgba(0,0,0,0.08)",
       }}
     >
-      {/* Fenster mit driftenden Wolken - groesser als zuvor */}
+      {/* Fenster mit driftenden Wolken - ab 150px Breite je Fenster erst ab
+          "sm" ueberlappungsfrei darstellbar; auf schmalen Handy-Breiten
+          (< 600px) wuerden sich beide Fenster sichtbar ueberlappen, daher
+          hier (wie Whiteboard/Projektor-Leinwand weiter unten) auf "xs"
+          ausgeblendet statt kaputt uebereinander gequetscht. */}
       {[52, "calc(100% - 202px)"].map((left, i) => (
-        <Box key={i} sx={{ position: "absolute", top: 16, left, width: 150, height: 105, borderRadius: 1, border: "6px solid #fff", boxShadow: "0 2px 10px rgba(0,0,0,0.08)", overflow: "hidden", background: "linear-gradient(180deg,#bfe0f5,#e8f4fb)" }}>
+        <Box key={i} sx={{ position: "absolute", top: 16, left, width: 150, height: 105, borderRadius: 1, border: "6px solid #fff", boxShadow: "0 2px 10px rgba(0,0,0,0.08)", overflow: "hidden", background: "linear-gradient(180deg,#bfe0f5,#e8f4fb)", display: { xs: "none", sm: "block" } }}>
           <Box sx={{ position: "absolute", inset: 0, "&::before, &::after": { content: '""', position: "absolute", backgroundColor: "#fff", zIndex: 1 }, "&::before": { top: 0, bottom: 0, left: "50%", width: 5, transform: "translateX(-50%)" }, "&::after": { left: 0, right: 0, top: "50%", height: 5, transform: "translateY(-50%)" } }} />
           <Box sx={{ position: "absolute", top: 18, left: -50, width: 32, height: 12, borderRadius: 6, backgroundColor: "#fff", opacity: 0.85, animation: `office-cloud-drift 14s linear infinite`, animationDelay: `${i * 4}s`, "@keyframes office-cloud-drift": { from: { transform: "translateX(0)" }, to: { transform: "translateX(270px)" } } }} />
           <Box sx={{ position: "absolute", top: 50, left: -85, width: 25, height: 10, borderRadius: 5, backgroundColor: "#fff", opacity: 0.7, animation: `office-cloud-drift 20s linear infinite`, animationDelay: `${i * 6}s` }} />
         </Box>
       ))}
 
-      {/* Haengelampe mit sanftem Glimmen */}
-      <Box sx={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-95px)", width: 2, height: 30, backgroundColor: "#c9b896" }} />
-      <Box sx={{ position: "absolute", top: 28, left: "50%", transform: "translateX(-116px)", width: 42, height: 20, borderRadius: "50% 50% 0 0", backgroundColor: "#f0e4c8", border: "1px solid #c9b896", boxShadow: "0 0 24px 6px rgba(255,224,150,0.35)", animation: "office-lamp-glow 3s ease-in-out infinite", "@keyframes office-lamp-glow": { "0%,100%": { boxShadow: "0 0 24px 6px rgba(255,224,150,0.25)" }, "50%": { boxShadow: "0 0 30px 10px rgba(255,224,150,0.5)" } } }} />
+      {/* Haengelampe mit sanftem Glimmen - auf "xs" mit ausgeblendet, da sie
+          bewusst mittig zwischen Whiteboard und Leinwand positioniert ist
+          (beide nur ab "sm" sichtbar) und ohne die beiden allein unzentriert
+          wirken wuerde. */}
+      <Box sx={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-95px)", width: 2, height: 30, backgroundColor: "#c9b896", display: { xs: "none", sm: "block" } }} />
+      <Box
+        sx={{
+          position: "absolute",
+          top: 28,
+          left: "50%",
+          transform: "translateX(-116px)",
+          width: 42,
+          height: 20,
+          borderRadius: "50% 50% 0 0",
+          backgroundColor: "#f0e4c8",
+          border: "1px solid #c9b896",
+          boxShadow: "0 0 24px 6px rgba(255,224,150,0.35)",
+          animation: "office-lamp-glow 3s ease-in-out infinite",
+          display: { xs: "none", sm: "block" },
+          "@keyframes office-lamp-glow": { "0%,100%": { boxShadow: "0 0 24px 6px rgba(255,224,150,0.25)" }, "50%": { boxShadow: "0 0 30px 10px rgba(255,224,150,0.5)" } },
+        }}
+      />
 
       {/* Whiteboard mit Klebezetteln + Trendlinie statt Regal (Video-Referenz)
           - rein dekorativ/abstrakt, keine erfundenen Zahlen oder Texte. */}
@@ -892,8 +930,14 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
           {/* Bild ist bereits eng auf Logo+Schriftzug zugeschnitten (kein
               erkennbarer Weiss-Rand mehr) und fuellt die Leinwand randlos -
               kein Padding/Objekt-Versatz, der einen zweiten helleren Rand
-              gegen den Leinwand-Hintergrund erzeugen wuerde. */}
-          <Box component="img" src="/bayar-solutions-logo.png" alt="Bayar Solutions" sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              gegen den Leinwand-Hintergrund erzeugen wuerde.
+              VITE_BASE_PATH-Praefix noetig: anders als Vite-Asset-Importe
+              wird ein roher src="/..."-String NICHT automatisch von der
+              "base"-Konfiguration umgeschrieben - ohne den Praefix zeigt das
+              Bild bei einem Unterpfad-Deployment (z.B. /office) auf die
+              falsche URL (Domain-Root statt /office/...), war live deshalb
+              kaputt, lokal (Root-Deployment) aber unsichtbar unauffaellig. */}
+          <Box component="img" src={`${import.meta.env.VITE_BASE_PATH || ""}/bayar-solutions-logo.png`} alt="Bayar Solutions" sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
         </Box>
       </Box>
 
@@ -919,7 +963,7 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
 
       {/* Boden mit Abteilungen - offener Raum ohne Karten-Kaesten (Video-
           Referenz), nur Ueberschrift + Abstand gliedern die Bereiche. */}
-      <Box sx={{ position: "relative", mt: "150px", pb: 3, px: { xs: 2, sm: 4 } }}>
+      <Box sx={{ position: "relative", mt: { xs: "56px", sm: "150px" }, pb: 3, px: { xs: 2, sm: 4 } }}>
         <Box sx={{ mb: 1 }}>
           <Box sx={{ fontSize: "0.8rem", fontWeight: 800, color: "#4a3d2a", mb: 1.5, pl: 0.5 }}>🏠 Meine Projekte</Box>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 4 }}>

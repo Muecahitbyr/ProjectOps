@@ -1,5 +1,6 @@
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
@@ -20,12 +21,16 @@ interface PageContainerProps {
 // Verbindungsstatus/Snackbar-Kanal, ueber eine einzige WebSocket-Verbindung.
 export function PageContainer({ title, children }: PageContainerProps) {
   const { status, notifications, dismissNotification } = useRealtime();
+  // Steuert die mobile Overlay-Sidebar (siehe Sidebar.tsx) - lebt hier, weil
+  // sowohl Header (Hamburger-Icon zum Oeffnen) als auch Sidebar (Icon-Klick/
+  // Backdrop zum Schliessen) darauf zugreifen muessen.
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      <Sidebar />
-      <Header title={title} realtimeStatus={status} />
-      <Box component="main" sx={{ flexGrow: 1, px: 4, pb: 4, minWidth: 0 }}>
+      <Sidebar mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
+      <Header title={title} realtimeStatus={status} onMenuClick={() => setMobileNavOpen((open) => !open)} />
+      <Box component="main" sx={{ flexGrow: 1, px: { xs: 2, sm: 3, md: 4 }, pb: 4, minWidth: 0 }}>
         <Toolbar />
         <Box sx={{ pt: 3 }}>{children}</Box>
       </Box>

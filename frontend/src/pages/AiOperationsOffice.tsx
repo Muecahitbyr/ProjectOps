@@ -13,7 +13,29 @@ import type { OfficeAgentWithProjectType } from "../components/ai-office/OfficeF
 import { OfficeDetailDrawer } from "../components/ai-office/OfficeDetailDrawer";
 import type { OfficeSelection } from "../components/ai-office/OfficeDetailDrawer";
 import { buildAgentSnapshots } from "../components/ai-office/officeConfig";
+import type { AgentStatus } from "../components/ai-office/officeConfig";
 import { getErrorMessage } from "../utils/getErrorMessage";
+
+// Kurzform des echten Projektnamens fuer die Schreibtisch-Beschriftung
+// (Nutzerwunsch: "DriveConnect" -> "DC", "GuessTheCapitalCity" -> "GTCC") -
+// rein deterministisch aus dem echten Projektnamen abgeleitet, keine fest
+// verdrahtete Liste erfundener Kuerzel: PascalCase-Namen liefern ihre
+// Grossbuchstaben-Folge ("DriveConnect" -> "DC"), sonst die Anfangsbuchstaben
+// der durch Nicht-Buchstaben getrennten Teile ("bayar-solutions.de" ->
+// "BSD"), sonst die ersten zwei Buchstaben ("Rechno" -> "RE").
+function abbreviateProjectName(name: string): string {
+  const capitals = name.match(/[A-Z]/g);
+  if (capitals && capitals.length >= 2) return capitals.join("");
+  const parts = name.split(/[^a-zA-Z0-9]+/).filter(Boolean);
+  if (parts.length >= 2) return parts.map((part) => part[0]!.toUpperCase()).join("");
+  return name.slice(0, 2).toUpperCase();
+}
+
+// "Schlechtester Status zuerst" - bestimmt, welche der zusammengefassten
+// Regeln eines Projekts den sichtbaren Zustand des gemeinsamen Schreibtischs
+// vorgibt (z.B. Rechno: wenn eine der beiden Regeln BLOCKED ist, brennt der
+// EINE Schreibtisch, auch wenn die andere Regel gerade IDLE ist).
+const STATUS_PRIORITY: Record<AgentStatus, number> = { BLOCKED: 0, WAITING: 1, WORKING: 2, IDLE: 3, COMPLETED: 4 };
 
 // "KI-Büro" - auf ausdruecklichen Nutzerwunsch NUR die reine Buero-
 // Visualisierung, keine Kennzahlen-Kacheln/Listen/Filter mehr. Gliederung
@@ -43,6 +65,14 @@ export function AiOperationsOffice() {
   const projectTypeById = useMemo(() => {
     const map = new Map<string, string>();
     for (const project of projectsQuery.data ?? []) map.set(project.id, project.type);
+    return map;
+  }, [projectsQuery.data]);
+
+  // Echter Projektname (dashboard/projects) fuer Schreibtisch-Titel/-Kuerzel
+  // - dieselbe Quelle wie projectTypeById.
+  const projectNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const project of projectsQuery.data ?? []) map.set(project.id, project.name);
     return map;
   }, [projectsQuery.data]);
 
@@ -90,9 +120,35 @@ export function AiOperationsOffice() {
         projectType: projectTypeById.get(agent.rule.projectId) === "website" ? "website" : "app",
         projectHealth: projectHealthById.get(agent.rule.projectId) ?? null,
         openIncidents: openIncidentsByProject.get(agent.rule.projectId) ?? [],
+        deskId: agent.rule.projectId,
+        deskLabel: abbreviateProjectName(projectNameById.get(agent.rule.projectId) ?? agent.rule.projectId),
+        projectName: projectNameById.get(agent.rule.projectId) ?? agent.rule.projectId,
+        groupedRules: [agent],
       })),
-    [agents, projectTypeById, projectHealthById, openIncidentsByProject],
+    [agents, projectTypeById, projectHealthById, openIncidentsByProject, projectNameById],
   );
+
+  // Nutzerwunsch: "ein Schreibtisch pro Projekt" statt "ein Schreibtisch pro
+  // Automation Rule" - Projekte mit mehreren echten Regeln (z.B. Rechno,
+  // bayar-solutions.de) bekommen dadurch nur EINEN gemeinsamen Schreibtisch
+  // ("2 in einem") statt einen je Regel. Der sichtbare Status kommt von der
+  // jeweils "schlechtesten" Regel (STATUS_PRIORITY); alle echten Regeln
+  // bleiben ueber groupedRules erreichbar (siehe OfficeDetailDrawer).
+  const deskAgents: OfficeAgentWithProjectType[] = useMemo(() => {
+    const byProject = new Map<string, OfficeAgentWithProjectType[]>();
+    for (const agent of agentsWithType) {
+      const list = byProject.get(agent.rule.projectId);
+      if (list) list.push(agent);
+      else byProject.set(agent.rule.projectId, [agent]);
+    }
+    const result: OfficeAgentWithProjectType[] = [];
+    for (const group of byProject.values()) {
+      const sortedByName = [...group].sort((a, b) => a.rule.name.localeCompare(b.rule.name));
+      const representative = [...sortedByName].sort((a, b) => STATUS_PRIORITY[a.status] - STATUS_PRIORITY[b.status])[0]!;
+      result.push({ ...representative, groupedRules: sortedByName.map(({ rule, department, status, latestAction, latestExecution }) => ({ rule, department, status, latestAction, latestExecution })) });
+    }
+    return result;
+  }, [agentsWithType]);
 
   const handleSelectAgent = useCallback((agent: OfficeAgentWithProjectType) => setSelection({ type: "agent", agent }), []);
   const handleCloseDrawer = useCallback(() => setSelection(null), []);
@@ -108,7 +164,7 @@ export function AiOperationsOffice() {
       ) : firstError ? (
         <ErrorState message={getErrorMessage(firstError)} onRetry={() => rulesQuery.refetch()} />
       ) : (
-        <OfficeFloorScene agents={agentsWithType} onSelectAgent={handleSelectAgent} />
+        <OfficeFloorScene agents={deskAgents} onSelectAgent={handleSelectAgent} />
       )}
 
       <OfficeDetailDrawer selection={selection} onClose={handleCloseDrawer} />
