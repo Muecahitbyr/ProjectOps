@@ -24,7 +24,10 @@ function RouteFallback() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    // basename bleibt leer/undefined im normalen Root-Deployment - nur
+    // gesetzt, wenn die App unter einem Unterpfad ausgeliefert wird (siehe
+    // vite.config.ts).
+    <BrowserRouter basename={import.meta.env.VITE_BASE_PATH || undefined}>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route

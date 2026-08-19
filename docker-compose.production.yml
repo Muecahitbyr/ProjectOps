@@ -45,6 +45,11 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER:-projectops}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-projectops}
+      # Unterpfad-Deployment (z.B. "/office", siehe VITE_BASE_PATH weiter
+      # unten) - haelt den Refresh-Token-Cookie-Pfad (auth.config.ts) in
+      # Sync mit dem, was der Browser tatsaechlich anfragt. Leer im
+      # Normalfall (Root-Deployment).
+      PUBLIC_PATH_PREFIX: ${VITE_BASE_PATH:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,7 +70,12 @@ services:
         # wie das Backend ausgeliefert (siehe reverse-proxy). Nur setzen, wenn
         # das Frontend tatsaechlich unter einer anderen Origin als das
         # Backend laeuft.
-        VITE_API_URL: ${VITE_API_URL:-}
+        VITE_API_URL: ${VITE_API_URL:-${VITE_BASE_PATH:-}}
+        # Unterpfad-Deployment (z.B. "/office", falls die App per Rewrite
+        # unter einem Pfad statt am Domain-Root ausgeliefert wird) - steuert
+        # Router-Basename + Vite-Asset-Praefix (vite.config.ts). Leer im
+        # Normalfall.
+        VITE_BASE_PATH: ${VITE_BASE_PATH:-}
     restart: unless-stopped
     depends_on:
       backend:

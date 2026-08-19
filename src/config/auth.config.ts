@@ -36,5 +36,11 @@ export const ACCESS_TOKEN_COOKIE = "access_token";
 export const REFRESH_TOKEN_COOKIE = "refresh_token";
 // Refresh-Cookie nur an /api/auth senden (Cookie-Pfad) - reduziert die
 // Angriffsflaeche, da der Browser ihn nicht bei jeder anderen Anfrage
-// mitschickt.
-export const REFRESH_TOKEN_COOKIE_PATH = "/api/auth";
+// mitschickt. PUBLIC_PATH_PREFIX (z.B. "/office") ist bei einem Unterpfad-
+// Deployment noetig: der Browser sieht/fordert Pfade unter diesem Praefix
+// an (siehe frontend VITE_BASE_PATH) - ohne den gleichen Praefix hier wuerde
+// der Browser das Cookie nie mitschicken, da Set-Cookie-Path exakt gegen den
+// tatsaechlich angefragten Pfad geprueft wird, nicht gegen den internen
+// (vom Reverse-Proxy bereits abgeschnittenen) Pfad, den dieser Server sieht.
+const PUBLIC_PATH_PREFIX = process.env.PUBLIC_PATH_PREFIX ?? "";
+export const REFRESH_TOKEN_COOKIE_PATH = `${PUBLIC_PATH_PREFIX}/api/auth`;

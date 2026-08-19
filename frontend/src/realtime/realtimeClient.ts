@@ -34,16 +34,27 @@ const eventListeners = new Set<EventListener>();
 
 // Production (siehe deploy/nginx/reverse-proxy.conf) liefert Frontend und
 // Backend unter derselben Origin aus - VITE_API_URL bleibt dort bewusst leer
-// (siehe frontend/Dockerfile), damit apiClient.ts relative Pfade nutzt.
-// new URL("") wuerde hier werfen, daher Fallback auf window.location (=
-// dieselbe Origin, exakt richtig fuer den Reverse-Proxy-Fall). Im
-// Development ist VITE_API_URL explizit gesetzt (frontend/.env) und wird
-// weiterhin verwendet.
+// (siehe frontend/Dockerfile), damit apiClient.ts relative Pfade nutzt. Ohne
+// gesetzten Wert wird window.location verwendet (= dieselbe Origin, exakt
+// richtig fuer den Reverse-Proxy-Fall).
+//
+// Im Development ist VITE_API_URL eine volle URL (z.B. http://localhost:4000,
+// siehe frontend/.env). Bei einem Unterpfad-Deployment (VITE_BASE_PATH, siehe
+// vite.config.ts) ist VITE_API_URL stattdessen ein reiner Pfad-Praefix (z.B.
+// "/office") - new URL(configured, window.location.origin) loest beide
+// Faelle einheitlich auf (eine bereits absolute URL "gewinnt" gegenueber der
+// mitgegebenen Basis, ein reiner Pfad wird gegen die aktuelle Origin
+// aufgeloest).
 function resolveWebSocketUrl(): string {
   const configured = import.meta.env.VITE_API_URL;
-  const apiUrl = configured ? new URL(configured) : window.location;
+  if (!configured) {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}//${window.location.host}/ws`;
+  }
+  const apiUrl = new URL(configured, window.location.origin);
   const protocol = apiUrl.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${apiUrl.host}/ws`;
+  const prefix = apiUrl.pathname === "/" ? "" : apiUrl.pathname.replace(/\/$/, "");
+  return `${protocol}//${apiUrl.host}${prefix}/ws`;
 }
 
 function setStatus(next: RealtimeConnectionStatus): void {
