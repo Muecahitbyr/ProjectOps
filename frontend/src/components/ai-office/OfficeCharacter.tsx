@@ -159,19 +159,13 @@ export const OfficeCharacter = memo(function OfficeCharacter({ status, color, la
           )}
         </Box>
 
-        {/* Zustands-Badge oberhalb der Figur - bewusst nur fuer die beiden
-            Zustaende, die sich nicht schon an der Pose ablesen lassen
-            (Schlafen/Warten). COMPLETED bekommt bewusst kein Extra-Icon mehr
-            (fuehrte zu Verwirrung "was bedeutet das gruene Icon") - eine
-            erfolgreich abgeschlossene Aufgabe sieht einfach wie normales
-            wach/aufmerksames Stehen aus. */}
-        {isIdle ? (
-          <Box sx={{ position: "absolute", top: -2, right: 0, fontSize: 12, animation: "office-char-zzz 2.4s ease-in-out infinite", "@keyframes office-char-zzz": { "0%,100%": { opacity: 0.3, transform: "translateY(0)" }, "50%": { opacity: 1, transform: "translateY(-4px)" } } }}>
-            💤
-          </Box>
-        ) : isWaiting ? (
-          <Box sx={{ position: "absolute", top: -4, right: 0, fontSize: 12 }}>⏳</Box>
-        ) : null}
+        {/* Zustands-Badge oberhalb der Figur - nur noch fuer "wartet"
+            (Schlafen/Zzz gibt es ausschliesslich beim tatsaechlichen Liegen
+            in der Chill Area, siehe OfficeLyingCharacter - ein stehender
+            IDLE-Agent "schlaeft" nicht wirklich, das Zzz dort war
+            irrefuehrend). COMPLETED bekommt bewusst kein Extra-Icon (siehe
+            unten). */}
+        {isWaiting ? <Box sx={{ position: "absolute", top: -4, right: 0, fontSize: 12 }}>⏳</Box> : null}
       </Box>
     </Tooltip>
   );

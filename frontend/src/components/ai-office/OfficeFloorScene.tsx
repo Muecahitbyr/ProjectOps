@@ -247,28 +247,28 @@ const OfficeKitchen = memo(function OfficeKitchen({
   );
 });
 
-// Chill Area: Couch + Shisha + kleiner Beistelltisch - drittes moegliches
-// Ziel der Pausen-Laufanimation. Egal was dort "gemacht" wird, es ist rein
-// dekorativ (kein echter Datenanspruch), aber ein reales, gemessenes
-// Laufziel wie Kueche/Kuehlschrank.
-const OfficeChillArea = memo(function OfficeChillArea({ chillRef }: { chillRef: (el: HTMLDivElement | null) => void }) {
+// Chill Area: mehrere einzelne Betten (statt einer Couch) + Shisha +
+// kleiner Beistelltisch - damit tatsaechlich mehrere Personen gleichzeitig
+// dort liegen/schlafen koennen, statt sich einen einzigen Liegeplatz zu
+// teilen. Jedes Bett ist ein eigenes, reales Laufziel (registerBedRef).
+const BED_COUNT = 3;
+const OfficeChillArea = memo(function OfficeChillArea({ registerBedRef }: { registerBedRef: (index: number, el: HTMLDivElement | null) => void }) {
   return (
-    <Box sx={{ position: "relative", width: 240, maxWidth: "100%" }}>
+    <Box sx={{ position: "relative", width: 290, maxWidth: "100%" }}>
       <Box sx={{ fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.05em", color: "#6b5c47", textTransform: "uppercase", textAlign: "center", mb: 1.5 }}>
-        🛋️ Chill Area
+        🛏️ Chill Area
       </Box>
-      <Box sx={{ position: "relative", height: 90, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 2 }}>
-        {/* Couch - schlichter, flacher Stil (Video-Referenz): ein Sitzkissen
-            in Akzentfarbe auf dunkelgrauer Basis statt mehrerer Einzelpolster.
-            chillRef sitzt direkt auf der Couch (statt dem ganzen Bereich),
-            damit die Pausen-Laufanimation praezise darauf zielt - inkl. dem
-            Hinlegen bei Ankunft. */}
-        <Box ref={chillRef} sx={{ position: "relative", width: 74, height: 24 }}>
-          <Box sx={{ position: "absolute", bottom: 0, width: "100%", height: 20, borderRadius: "8px", backgroundColor: "#4a4f57" }} />
-          <Box sx={{ position: "absolute", bottom: 12, left: 8, width: 22, height: 12, borderRadius: "4px", backgroundColor: "#e08a4f" }} />
-          <Box sx={{ position: "absolute", bottom: -5, left: 3, width: 4, height: 6, backgroundColor: "#33373d", borderRadius: 1 }} />
-          <Box sx={{ position: "absolute", bottom: -5, right: 3, width: 4, height: 6, backgroundColor: "#33373d", borderRadius: 1 }} />
-        </Box>
+      <Box sx={{ position: "relative", height: 90, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 1.5 }}>
+        {/* Einzelbetten - schlichter, flacher Stil (Video-Referenz): ein
+            Kissen in Akzentfarbe auf dunkelgrauer Matratze. */}
+        {Array.from({ length: BED_COUNT }, (_, i) => (
+          <Box key={i} ref={(el: HTMLDivElement | null) => registerBedRef(i, el)} sx={{ position: "relative", width: 46, height: 22 }}>
+            <Box sx={{ position: "absolute", bottom: 0, width: "100%", height: 16, borderRadius: "6px", backgroundColor: "#4a4f57" }} />
+            <Box sx={{ position: "absolute", bottom: 3, left: 3, width: 14, height: 10, borderRadius: "3px", backgroundColor: "#e08a4f" }} />
+            <Box sx={{ position: "absolute", bottom: -4, left: 2, width: 3, height: 5, backgroundColor: "#33373d", borderRadius: 1 }} />
+            <Box sx={{ position: "absolute", bottom: -4, right: 2, width: 3, height: 5, backgroundColor: "#33373d", borderRadius: 1 }} />
+          </Box>
+        ))}
 
         {/* Shisha auf kleinem Tisch */}
         <Box sx={{ position: "relative", width: 32 }}>
@@ -292,6 +292,41 @@ const OfficeChillArea = memo(function OfficeChillArea({ chillRef }: { chillRef: 
               "@keyframes office-shisha-smoke": { "0%": { transform: "translate(0,0) scale(1)", opacity: 0.6 }, "100%": { transform: "translate(10px,-20px) scale(2.4)", opacity: 0 } },
             }}
           />
+        </Box>
+      </Box>
+    </Box>
+  );
+});
+
+// Leseecke: Buecherregal + Sessel - viertes Pausenziel, damit IDLE-Personen
+// beim Umherlaufen nicht auf leerer Flaeche stehen bleiben, sondern einen
+// echten Anlaufpunkt mit Zweck haben.
+const OfficeReadingCorner = memo(function OfficeReadingCorner({ booksRef }: { booksRef: (el: HTMLDivElement | null) => void }) {
+  return (
+    <Box sx={{ position: "relative", width: 190, maxWidth: "100%" }}>
+      <Box sx={{ fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.05em", color: "#6b5c47", textTransform: "uppercase", textAlign: "center", mb: 1.5 }}>
+        📚 Leseecke
+      </Box>
+      <Box sx={{ position: "relative", height: 90, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 3 }}>
+        {/* Buecherregal */}
+        <Box sx={{ position: "relative", width: 44, height: 62, border: "3px solid #a8804a", borderRadius: 1, backgroundColor: "rgba(200,163,107,0.15)" }}>
+          <Box sx={{ position: "absolute", top: "33%", left: 0, right: 0, height: 3, backgroundColor: "#a8804a" }} />
+          <Box sx={{ position: "absolute", top: "66%", left: 0, right: 0, height: 3, backgroundColor: "#a8804a" }} />
+          <Box sx={{ position: "absolute", top: 4, left: 4, width: 5, height: 16, backgroundColor: "#e8927a" }} />
+          <Box sx={{ position: "absolute", top: 4, left: 11, width: 5, height: 14, backgroundColor: "#7fb3d5" }} />
+          <Box sx={{ position: "absolute", top: 6, left: 18, width: 5, height: 12, backgroundColor: "#8fbf7f" }} />
+          <Box sx={{ position: "absolute", top: 4, left: 25, width: 5, height: 16, backgroundColor: "#e0c168" }} />
+          <Box sx={{ position: "absolute", top: "38%", left: 4, width: 5, height: 14, backgroundColor: "#c98fd5" }} />
+          <Box sx={{ position: "absolute", top: "38%", left: 11, width: 5, height: 16, backgroundColor: "#7fb3d5" }} />
+          <Box sx={{ position: "absolute", top: "38%", left: 18, width: 5, height: 12, backgroundColor: "#e8927a" }} />
+          <Box sx={{ position: "absolute", bottom: 4, left: 6, width: 16, height: 6, borderRadius: "1px", backgroundColor: "#d9c48f" }} />
+        </Box>
+        {/* Sessel - reales Laufziel */}
+        <Box ref={booksRef} sx={{ position: "relative", width: 40, height: 34 }}>
+          <Box sx={{ position: "absolute", bottom: 0, width: "100%", height: 20, borderRadius: "6px", backgroundColor: "#8a6f52" }} />
+          <Box sx={{ position: "absolute", bottom: 12, width: "100%", height: 20, borderRadius: "6px 6px 3px 3px", backgroundColor: "#9c7f5f" }} />
+          <Box sx={{ position: "absolute", bottom: -5, left: 4, width: 4, height: 6, backgroundColor: "#5c4835", borderRadius: 1 }} />
+          <Box sx={{ position: "absolute", bottom: -5, right: 4, width: 4, height: 6, backgroundColor: "#5c4835", borderRadius: 1 }} />
         </Box>
       </Box>
     </Box>
@@ -348,22 +383,36 @@ function OfficeLyingCharacter({ color }: { color: string }) {
 }
 
 // Echte, laufende Personen zwischen ihrem echten Schreibtisch und einem von
-// vier Zielen (Kaffee/Kuehlschrank/Chill Area/freies Umherlaufen) - Position
-// wird per getBoundingClientRect() der tatsaechlichen DOM-Elemente gemessen
-// (kein geratener/fixer Pfad), animiert per CSS-transition. Nur real IDLE
-// Agenten (echter Zustand: seit je nie ausgeloest) werden ausgewaehlt - keine
+// vier Zielen (Kaffee/Kuehlschrank/Chill Area/Leseecke) - Position wird per
+// getBoundingClientRect() der tatsaechlichen DOM-Elemente gemessen (kein
+// geratener/fixer Pfad), animiert per CSS-transition. Nur real IDLE Agenten
+// (echter Zustand: seit je nie ausgeloest) werden ausgewaehlt - keine
 // erfundene Aktivitaet fuer WORKING/BLOCKED/WAITING-Agenten, deren echter
 // Status damit nicht verfaelscht wird. Mehrere IDLE Agenten koennen
 // gleichzeitig unterwegs sein (nicht nur einer nach dem anderen) - "sie
-// muessen nicht standardmaessig am Platz sein".
-type WalkDestination = "coffee" | "fridge" | "chill" | "wander";
-const DESTINATION_ITEM: Record<WalkDestination, string> = { coffee: "☕", fridge: "🥤", chill: "😌", wander: "" };
+// muessen nicht standardmaessig am Platz sein". Jedes Ziel hat einen
+// echten Zweck (Kaffee holen/Kuehlschrank/liegen/lesen) statt aufs freie
+// Herumstehen auf leerer Flaeche.
+type WalkDestination = "coffee" | "fridge" | "chill" | "books";
+const DESTINATION_ITEM: Record<WalkDestination, string> = { coffee: "☕", fridge: "🥤", chill: "😌", books: "📖" };
 const MAX_CONCURRENT_WALKERS = 3;
+
+// Konstante Gehgeschwindigkeit statt fixer Dauer - vorher liefen alle
+// Strecken (kurz oder lang) in derselben Zeit ab, wirkte je nach Distanz
+// mal zu schnell, mal zu langsam. Dauer wird jetzt aus der tatsaechlich
+// gemessenen Distanz berechnet, mit sinnvollen Grenzen nach oben/unten.
+const WALK_SPEED_PX_PER_MS = 0.2;
+const MIN_WALK_MS = 900;
+const MAX_WALK_MS = 3200;
 
 interface WalkerState {
   agentId: string;
   color: string;
   destination: WalkDestination;
+  // Nur gesetzt, wenn destination === "chill" - welches der BED_COUNT
+  // Betten diese Person belegt/ansteuert, damit sich zwei Personen nicht
+  // dasselbe Bett teilen.
+  bedIndex?: number;
   from: { x: number; y: number };
   to: { x: number; y: number };
   // "pos" ist bewusst vom Lauf-/Ankunfts-Status getrennt: sie treibt
@@ -373,12 +422,12 @@ interface WalkerState {
   // tatsaechlich zu gleiten begann), sondern waehrend "walking" die ganze
   // Gleitdauer ueber true bleibt.
   pos: { x: number; y: number };
+  // Dauer der aktuellen Gleit-Transition, aus der echten Distanz berechnet
+  // (konstante Geschwindigkeit statt fixer Dauer fuer alle Strecken).
+  durationMs: number;
   walking: boolean;
   atDestination: boolean;
 }
-
-// Dauer der CSS-left/top-Transition unten (muss mit ihr uebereinstimmen).
-const WALK_MS = 1800;
 
 // Diverse, unterschiedlich geformte Pflanzen statt eines einzigen,
 // kaktusartigen Topfs - je Position eine andere Silhouette.
@@ -442,11 +491,10 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
   const deskElsRef = useRef(new Map<string, HTMLDivElement>());
   const coffeeElRef = useRef<HTMLDivElement | null>(null);
   const fridgeElRef = useRef<HTMLDivElement | null>(null);
-  const chillElRef = useRef<HTMLDivElement | null>(null);
-  // Der (aktuell leere) "Kundenprojekte"-Bereich dient als reale, gemessene
-  // Flaeche fuer freies Umherlaufen ("wander") - kein geratener/fixer Pfad,
-  // sondern ein zufaelliger Punkt innerhalb eines echten DOM-Rechtecks.
-  const wanderAreaElRef = useRef<HTMLDivElement | null>(null);
+  const booksElRef = useRef<HTMLDivElement | null>(null);
+  // Ein Ref pro Bett (statt einem einzelnen Chill-Ziel), damit mehrere
+  // Personen gleichzeitig auf unterschiedlichen Betten liegen koennen.
+  const bedElsRef = useRef(new Map<number, HTMLDivElement>());
   // Mehrere gleichzeitige Laeufer statt einem einzelnen - "sie muessen nicht
   // standardmaessig am Platz sein", jede real IDLE Person kann unabhaengig
   // unterwegs sein.
@@ -470,20 +518,21 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
   const registerFridgeRef = useCallback((el: HTMLDivElement | null) => {
     fridgeElRef.current = el;
   }, []);
-  const registerChillRef = useCallback((el: HTMLDivElement | null) => {
-    chillElRef.current = el;
+  const registerBooksRef = useCallback((el: HTMLDivElement | null) => {
+    booksElRef.current = el;
   }, []);
-  const registerWanderAreaRef = useCallback((el: HTMLDivElement | null) => {
-    wanderAreaElRef.current = el;
+  const registerBedRef = useCallback((index: number, el: HTMLDivElement | null) => {
+    if (el) bedElsRef.current.set(index, el);
+    else bedElsRef.current.delete(index);
   }, []);
 
   // Periodisch: bis zu MAX_CONCURRENT_WALKERS real IDLE Personen sind
-  // gleichzeitig unterwegs (Kaffee/Kuehlschrank/Chill Area/freies
-  // Umherlaufen, zufaellig gewaehlt) statt nacheinander eine einzelne Person
-  // - "sie muessen nicht standardmaessig am Platz sein". Weg wird live aus
-  // den tatsaechlichen Bildschirmpositionen berechnet. Die Ref-Zuordnung
-  // lebt bewusst INNERHALB des Effekts (kein externes Dependency-Problem) -
-  // die Refs selbst sind stabil, nur ihr .current aendert sich.
+  // gleichzeitig unterwegs (Kaffee/Kuehlschrank/Chill Area/Leseecke,
+  // zufaellig gewaehlt) statt nacheinander eine einzelne Person - "sie
+  // muessen nicht standardmaessig am Platz sein". Weg wird live aus den
+  // tatsaechlichen Bildschirmpositionen berechnet. Die Ref-Zuordnung lebt
+  // bewusst INNERHALB des Effekts (kein externes Dependency-Problem) - die
+  // Refs selbst sind stabil, nur ihr .current aendert sich.
   useEffect(() => {
     // setInterval()-Rueckgabewerte von Callback-Funktionen werden vom
     // Browser NIE aufgerufen - anders als bei useEffect()-Cleanups muss die
@@ -515,12 +564,7 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
       const idleCandidates = withColorRef.current.filter((x) => x.agent.status === "IDLE" && deskElsRef.current.has(x.agent.rule.id) && !current.has(x.agent.rule.id));
       if (idleCandidates.length === 0) return;
 
-      const destinationRefs: Record<Exclude<WalkDestination, "wander">, HTMLDivElement | null> = {
-        coffee: coffeeElRef.current,
-        fridge: fridgeElRef.current,
-        chill: chillElRef.current,
-      };
-      const destinations: WalkDestination[] = ["coffee", "fridge", "chill", "wander", "wander"];
+      const destinations: WalkDestination[] = ["coffee", "fridge", "chill", "books"];
       const destination = destinations[Math.floor(Math.random() * destinations.length)]!;
       const pick = idleCandidates[Math.floor(Math.random() * idleCandidates.length)]!;
       const agentId = pick.agent.rule.id;
@@ -530,22 +574,30 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
       const from = { x: deskRect.left + deskRect.width / 2 - containerRect.left, y: deskRect.bottom - containerRect.top - 10 };
 
       let to: { x: number; y: number };
-      if (destination === "wander") {
-        // Freies Umherlaufen: ein echter, zufaelliger Punkt innerhalb des
-        // (aktuell leeren) Kundenprojekte-Bereichs - real gemessen, kein
-        // erfundener/fixer Pfad.
-        const areaEl = wanderAreaElRef.current;
-        if (!areaEl) return;
-        const areaRect = areaEl.getBoundingClientRect();
-        const tx = areaRect.left + 30 + Math.random() * Math.max(20, areaRect.width - 60);
-        const ty = areaRect.top + 30 + Math.random() * Math.max(20, areaRect.height - 50);
-        to = { x: tx - containerRect.left, y: ty - containerRect.top };
+      let bedIndex: number | undefined;
+      if (destination === "chill") {
+        // Freies Bett suchen (keiner teilt sich ein Bett) - real gemessen,
+        // wird schon beim Losgehen reserviert (bedIndex bleibt fuer die
+        // gesamte Pause gesetzt).
+        const occupiedBeds = new Set(Array.from(current.values(), (w) => w.bedIndex).filter((i) => i !== undefined));
+        const freeBedIndex = Array.from({ length: BED_COUNT }, (_, i) => i).find((i) => !occupiedBeds.has(i) && bedElsRef.current.has(i));
+        if (freeBedIndex === undefined) return;
+        const bedRect = bedElsRef.current.get(freeBedIndex)!.getBoundingClientRect();
+        to = { x: bedRect.left + bedRect.width / 2 - containerRect.left, y: bedRect.bottom - containerRect.top - 14 };
+        bedIndex = freeBedIndex;
       } else {
-        const destinationEl = destinationRefs[destination];
+        const destinationEl = destination === "coffee" ? coffeeElRef.current : destination === "fridge" ? fridgeElRef.current : booksElRef.current;
         if (!destinationEl) return;
         const destRect = destinationEl.getBoundingClientRect();
         to = { x: destRect.left + destRect.width / 2 - containerRect.left, y: destRect.bottom - containerRect.top - 14 };
       }
+
+      // Konstante Geschwindigkeit: Dauer aus der echten Distanz berechnet,
+      // statt einer fixen Dauer fuer jede Strecke (kurze Wege liefen vorher
+      // "gemuetlicher", lange Wege "hektischer" - bei gleicher Zeit fuer
+      // unterschiedliche Distanz).
+      const distance = Math.hypot(to.x - from.x, to.y - from.y);
+      const durationMs = Math.min(MAX_WALK_MS, Math.max(MIN_WALK_MS, distance / WALK_SPEED_PX_PER_MS));
 
       // Hinweg mit "pos" noch auf "from" mounten (kein Sprung beim ersten
       // Render), dann im naechsten Frame "pos" auf "to" umstellen - das
@@ -556,7 +608,7 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
       // waehrend sich die Figur noch sichtbar bewegte).
       setWalkers((prev) => {
         const copy = new Map(prev);
-        copy.set(agentId, { agentId, color: pick.color, destination, from, to, pos: from, walking: true, atDestination: false });
+        copy.set(agentId, { agentId, color: pick.color, destination, bedIndex, from, to, pos: from, durationMs, walking: true, atDestination: false });
         return copy;
       });
       requestAnimationFrame(() => {
@@ -569,9 +621,9 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
       // festen, kurzen ~2.8s-Fensters - wie lange genau ist laut Nutzer egal,
       // Hauptsache nicht mechanisch kurz.
       const stayMs = 6000 + Math.random() * 14000;
-      schedule(() => updateWalker(agentId, (w) => ({ ...w, walking: false, atDestination: true })), WALK_MS);
-      schedule(() => updateWalker(agentId, (w) => ({ ...w, pos: w.from, walking: true, atDestination: false })), WALK_MS + stayMs);
-      schedule(() => updateWalker(agentId, () => null), WALK_MS + stayMs + WALK_MS);
+      schedule(() => updateWalker(agentId, (w) => ({ ...w, walking: false, atDestination: true })), durationMs);
+      schedule(() => updateWalker(agentId, (w) => ({ ...w, pos: w.from, walking: true, atDestination: false })), durationMs + stayMs);
+      schedule(() => updateWalker(agentId, () => null), durationMs + stayMs + durationMs);
     }, 4000);
 
     return () => {
@@ -687,10 +739,7 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
           </Box>
         </Box>
 
-        {/* Kundenprojekte-Bereich dient zugleich als reale Flaeche fuer
-            freies Umherlaufen (registerWanderAreaRef) - bleibt ehrlich leer
-            statt erfundener Daten, ist aber ein echter, gemessener Bereich. */}
-        <Box ref={registerWanderAreaRef} sx={{ mt: 3 }}>
+        <Box sx={{ mt: 3 }}>
           <Box sx={{ fontSize: "0.8rem", fontWeight: 800, color: "#4a3d2a", mb: 1.5, pl: 0.5 }}>💼 Kundenprojekte</Box>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
             <OfficeZone title="Apps" agents={[]} accentColor="#9ca3af" awayAgentIds={awayAgentIds} onSelectAgent={onSelectAgent} registerDeskRef={registerDeskRef} emptyLabel="Noch keine Kundenprojekte hinterlegt" />
@@ -700,23 +749,25 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
 
         <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 5, mt: 4 }}>
           <OfficeKitchen coffeeRef={registerCoffeeRef} fridgeRef={registerFridgeRef} fridgeOpen={fridgeOpen} />
-          <OfficeChillArea chillRef={registerChillRef} />
+          <OfficeChillArea registerBedRef={registerBedRef} />
+          <OfficeReadingCorner booksRef={registerBooksRef} />
         </Box>
       </Box>
 
       {/* Die laufenden Charaktere - echte, gemessene Start-/Zielposition, mit
-          echtem Gang-Zyklus waehrend der Bewegung. Mehrere koennen
+          echtem Gang-Zyklus waehrend der Bewegung (konstante Geschwindigkeit:
+          Transition-Dauer aus der echten Distanz berechnet). Mehrere koennen
           gleichzeitig unterwegs sein. Am Ziel angekommen haelt die Person
-          kurz das zum Ziel passende Item (Kaffee/Snack aus dem
-          Kuehlschrank), legt sich in der Chill Area tatsaechlich auf die
-          Couch, oder steht beim freien Umherlaufen einfach nur da. */}
+          kurz das zum Ziel passende Item (Kaffee/Snack aus dem Kuehlschrank/
+          Buch), oder legt sich in der Chill Area tatsaechlich auf ihr Bett -
+          das Zzz gibt es ausschliesslich dabei, nicht beim Stehen/Laufen. */}
       {activeWalkers.map((walker) =>
         walker.atDestination && walker.destination === "chill" ? (
-          <Box key={walker.agentId} sx={{ position: "absolute", left: walker.pos.x, top: walker.pos.y, transform: "translate(-52%, -32px)", transition: `left ${WALK_MS}ms ease-in-out, top ${WALK_MS}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
+          <Box key={walker.agentId} sx={{ position: "absolute", left: walker.pos.x, top: walker.pos.y, transform: "translate(-52%, -30px)", transition: `left ${walker.durationMs}ms ease-in-out, top ${walker.durationMs}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
             <OfficeLyingCharacter color={walker.color} />
           </Box>
         ) : (
-          <Box key={walker.agentId} sx={{ position: "absolute", left: walker.pos.x, top: walker.pos.y, transform: "translate(-50%, -100%)", transition: `left ${WALK_MS}ms ease-in-out, top ${WALK_MS}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
+          <Box key={walker.agentId} sx={{ position: "absolute", left: walker.pos.x, top: walker.pos.y, transform: "translate(-50%, -100%)", transition: `left ${walker.durationMs}ms ease-in-out, top ${walker.durationMs}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
             {walker.atDestination && DESTINATION_ITEM[walker.destination] ? (
               <Box sx={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", fontSize: 18 }}>{DESTINATION_ITEM[walker.destination]}</Box>
             ) : null}
