@@ -55,7 +55,11 @@ export const projects: ProjectConfig[] = [
       // Ein Treffer beweist nur Erreichbarkeit + korrektes Auth-Gating,
       // keine tatsaechliche Dateninhalt-Pruefung.
       { id: "rechno-firestore-rest", type: "api-health", target: "https://firestore.googleapis.com/v1/projects/rechno-bf8d7/databases/(default)/documents/_projectops_health", intervalMinutes: 5, enabled: true, expectedStatusCodes: [403] },
-      { id: "rechno-stripe", type: "stripe", intervalMinutes: 5, enabled: true }, // nutzt STRIPE_SECRET_KEY (nicht gesetzt)
+      // Stripe wurde vollstaendig aus Rechno entfernt (Nutzerangabe,
+      // 2026-08-26) - Check deaktiviert statt geloescht, analog zu
+      // "rechno-api" oben (echte Historie bleibt erhalten, laeuft aber
+      // nicht mehr).
+      { id: "rechno-stripe", type: "stripe", intervalMinutes: 5, enabled: false },
       // Der im Discovery Report genannte JSON-Endpunkt
       // (status.stripe.com/api/v2/status.json) wurde vor der Uebernahme live
       // per curl verifiziert und liefert 404 - Stripes Statusseite ist
