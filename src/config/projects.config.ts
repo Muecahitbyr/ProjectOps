@@ -120,7 +120,12 @@ export const projects: ProjectConfig[] = [
     checks: [
       { id: "driveconnect-firebase", type: "firebase-status", target: "driveconnect-e6297", intervalMinutes: 5, enabled: true }, // Credential: FIREBASE_SERVICE_ACCOUNT_DRIVECONNECT_E6297 (nicht gesetzt)
       { id: "driveconnect-firestore", type: "firestore", target: "driveconnect-e6297", intervalMinutes: 5, enabled: true }, // Credential: FIREBASE_SERVICE_ACCOUNT_DRIVECONNECT_E6297 (nicht gesetzt)
-      { id: "driveconnect-storage", type: "firebase-storage", target: "driveconnect-e6297", intervalMinutes: 5, enabled: true }, // Credential: FIREBASE_SERVICE_ACCOUNT_DRIVECONNECT_E6297 (nicht gesetzt)
+      // Firebase Storage fuer dieses Projekt ist seit dem Spark->Blaze-
+      // Tarifwechsel gesperrt (Google verlangt inzwischen den kostenpflichtigen
+      // Blaze-Tarif fuer Storage-Zugriff); Nutzer moechte kein Upgrade, Storage
+      // wird nicht mehr gebraucht (Nutzerangabe, 2026-08-26) - Check deaktiviert
+      // statt geloescht, analog zu "driveconnect-api" darunter.
+      { id: "driveconnect-storage", type: "firebase-storage", target: "driveconnect-e6297", intervalMinutes: 5, enabled: false },
       // DriveConnect hat laut Discovery Report KEINEN eigenen Server/HTTP-API
       // - dieser Platzhalter-Check hatte nie ein reales Ziel und wird
       // deaktiviert statt mit einer erfundenen URL befuellt.
