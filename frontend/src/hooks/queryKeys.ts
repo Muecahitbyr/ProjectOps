@@ -213,5 +213,6 @@ export const queryKeys = {
   // ebenfalls unter dem "resilience"-Praefix (siehe oben).
   resilienceAttentionList: (params: import("../api/resilience.api").AttentionListParams) => ["resilience", "attention-list", params] as const,
   // Todo-Panel unter KI-Buero.
-  todos: (projectId?: string) => ["todos", projectId ?? "all"] as const,
+  todos: (category?: string) => ["todos", category ?? "all"] as const,
+  todoCategories: ["todos", "categories"] as const,
 };

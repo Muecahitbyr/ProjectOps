@@ -1,10 +1,15 @@
 import { apiClient } from "./client";
 import type { CreateTodoInput, Todo, UpdateTodoInput } from "../types/todo.types";
 
-export async function fetchTodos(projectId?: string): Promise<Todo[]> {
+export async function fetchTodos(category?: string): Promise<Todo[]> {
   const { data } = await apiClient.get<Todo[]>("/api/todos", {
-    params: projectId ? { projectId } : undefined,
+    params: category ? { category } : undefined,
   });
+  return data;
+}
+
+export async function fetchTodoCategories(): Promise<string[]> {
+  const { data } = await apiClient.get<string[]>("/api/todos/categories");
   return data;
 }
 

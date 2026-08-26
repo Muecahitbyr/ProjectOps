@@ -1,6 +1,9 @@
 export interface Todo {
   id: number;
-  projectId: string | null;
+  // Freier Text statt Fremdschluessel auf projects(id) - deckt auch eigene
+  // Vorhaben/Firmen ab, die kein ueberwachtes ProjectOps-Projekt sind (z.B.
+  // "cmd Gebäudereinigung", "mehdi"), siehe Migration 0067.
+  category: string | null;
   title: string;
   description: string | null;
   done: boolean;
@@ -9,7 +12,7 @@ export interface Todo {
 }
 
 export interface CreateTodoInput {
-  projectId?: string | null | undefined;
+  category?: string | null | undefined;
   title: string;
   description?: string | null | undefined;
 }

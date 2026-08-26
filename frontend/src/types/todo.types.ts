@@ -1,6 +1,6 @@
 export interface Todo {
   id: number;
-  projectId: string | null;
+  category: string | null;
   title: string;
   description: string | null;
   done: boolean;
@@ -9,7 +9,7 @@ export interface Todo {
 }
 
 export interface CreateTodoInput {
-  projectId?: string | null;
+  category?: string | null;
   title: string;
   description?: string | null;
 }

@@ -3,7 +3,7 @@ import type { CreateTodoInput, Todo, UpdateTodoInput } from "../types/todo.types
 
 interface TodoRow {
   id: string | number;
-  project_id: string | null;
+  category: string | null;
   title: string;
   description: string | null;
   done: boolean;
@@ -20,7 +20,7 @@ function toIsoString(value: string | Date): string {
 function mapRow(row: TodoRow): Todo {
   return {
     id: Number(row.id),
-    projectId: row.project_id,
+    category: row.category,
     title: row.title,
     description: row.description,
     done: row.done,
@@ -29,18 +29,28 @@ function mapRow(row: TodoRow): Todo {
   };
 }
 
-const TODO_COLUMNS = `id, project_id, title, description, done, created_at, updated_at`;
+const TODO_COLUMNS = `id, category, title, description, done, created_at, updated_at`;
 
-export async function listTodos(options: { projectId?: string } = {}): Promise<Todo[]> {
-  if (options.projectId) {
+export async function listTodos(options: { category?: string } = {}): Promise<Todo[]> {
+  if (options.category) {
     const { rows } = await pool.query<TodoRow>(
-      `SELECT ${TODO_COLUMNS} FROM todos WHERE project_id = $1 ORDER BY done ASC, created_at DESC`,
-      [options.projectId],
+      `SELECT ${TODO_COLUMNS} FROM todos WHERE category = $1 ORDER BY done ASC, created_at DESC`,
+      [options.category],
     );
     return rows.map(mapRow);
   }
   const { rows } = await pool.query<TodoRow>(`SELECT ${TODO_COLUMNS} FROM todos ORDER BY done ASC, created_at DESC`);
   return rows.map(mapRow);
+}
+
+// Echte, bereits verwendete Kategorien (kein separates Stammdaten-Konzept) -
+// speist den Autocomplete-Vorschlag im Frontend, damit Tippfehler/
+// Varianten desselben Vorhabens nicht unnoetig auseinanderlaufen.
+export async function listDistinctCategories(): Promise<string[]> {
+  const { rows } = await pool.query<{ category: string }>(
+    `SELECT DISTINCT category FROM todos WHERE category IS NOT NULL ORDER BY category ASC`,
+  );
+  return rows.map((row) => row.category);
 }
 
 export async function getTodoById(id: number): Promise<Todo | undefined> {
@@ -50,8 +60,8 @@ export async function getTodoById(id: number): Promise<Todo | undefined> {
 
 export async function createTodo(input: CreateTodoInput): Promise<Todo> {
   const { rows } = await pool.query<TodoRow>(
-    `INSERT INTO todos (project_id, title, description) VALUES ($1, $2, $3) RETURNING ${TODO_COLUMNS}`,
-    [input.projectId ?? null, input.title, input.description ?? null],
+    `INSERT INTO todos (category, title, description) VALUES ($1, $2, $3) RETURNING ${TODO_COLUMNS}`,
+    [input.category ?? null, input.title, input.description ?? null],
   );
   return mapRow(rows[0]!);
 }

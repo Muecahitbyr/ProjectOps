@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { createTodo, deleteTodo, listTodos, updateTodo } from "../db/todos.repository";
+import { createTodo, deleteTodo, listDistinctCategories, listTodos, updateTodo } from "../db/todos.repository";
 import { authenticate } from "../middleware/authenticate";
 import { notFoundError } from "../core/app-error";
 import { broadcast } from "../realtime/websocket.server";
@@ -18,13 +18,19 @@ function parseTodoId(req: import("express").Request): number | undefined {
 }
 
 todosRouter.get("/todos", authenticate, async (req, res) => {
-  const projectId = typeof req.query.projectId === "string" ? req.query.projectId : undefined;
-  res.json(await listTodos({ ...(projectId ? { projectId } : {}) }));
+  const category = typeof req.query.category === "string" ? req.query.category : undefined;
+  res.json(await listTodos({ ...(category ? { category } : {}) }));
+});
+
+// Bereits verwendete Kategorien fuer den Autocomplete im Frontend - eigene,
+// schmale Route statt die volle Todo-Liste dafuer zu durchsuchen.
+todosRouter.get("/todos/categories", authenticate, async (_req, res) => {
+  res.json(await listDistinctCategories());
 });
 
 const createSchema = z
   .object({
-    projectId: z.string().trim().min(1).nullable().optional(),
+    category: z.string().trim().min(1).max(120).nullable().optional(),
     title: z.string().trim().min(1).max(300),
     description: z.string().trim().max(5000).nullable().optional(),
   })
