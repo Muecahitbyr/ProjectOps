@@ -70,7 +70,11 @@ export const projects: ProjectConfig[] = [
       // verwendet, um keine erfundene URL einzutragen - stattdessen reiner
       // Erreichbarkeits-Check (Typ http) gegen die echte, live bestaetigte
       // (200) Statusseiten-URL. Siehe Abschlussbericht Punkt 22.
-      { id: "rechno-stripe-status", type: "http", target: "https://status.stripe.com/", intervalMinutes: 5, enabled: true },
+      //
+      // Alle folgenden 9 Stripe-bezogenen Checks (Statusseite + 8 Cloud
+      // Functions) deaktiviert - Stripe wurde vollstaendig aus Rechno
+      // entfernt (Nutzerangabe, 2026-08-26), analog zu "rechno-stripe" oben.
+      { id: "rechno-stripe-status", type: "http", target: "https://status.stripe.com/", intervalMinutes: 5, enabled: false },
       // 8 reale Cloud Functions/Cloud Run Endpunkte. Die erwarteten Status-
       // codes wurden NICHT ungeprueft aus dem Discovery Report uebernommen,
       // sondern am 17.08.2026 live per curl (GET, read-only) gegen die
@@ -84,18 +88,18 @@ export const projects: ProjectConfig[] = [
       // Korrektheit (z.B. ob der Webhook echte Events tatsaechlich korrekt
       // verarbeitet - das kann ProjectOps ohne eine echte, signierte
       // Stripe-Anfrage nicht pruefen).
-      { id: "rechno-fn-checkout", type: "api-health", target: "https://createstripecheckoutsession-lhj7nrzybq-ew.a.run.app", intervalMinutes: 5, enabled: true, expectedStatusCodes: [405] },
-      { id: "rechno-fn-payment-status", type: "api-health", target: "https://checkstripepaymentstatus-lhj7nrzybq-ew.a.run.app", intervalMinutes: 5, enabled: true, expectedStatusCodes: [401] },
-      { id: "rechno-fn-webhook", type: "api-health", target: "https://stripewebhook-lhj7nrzybq-ew.a.run.app", intervalMinutes: 5, enabled: true, expectedStatusCodes: [400] },
-      { id: "rechno-fn-finalize-invoice", type: "api-health", target: "https://europe-west1-rechno-bf8d7.cloudfunctions.net/finalizeInvoice", intervalMinutes: 5, enabled: true, expectedStatusCodes: [405] },
-      { id: "rechno-fn-connect-create", type: "api-health", target: "https://europe-west1-rechno-bf8d7.cloudfunctions.net/createConnectAccount", intervalMinutes: 5, enabled: true, expectedStatusCodes: [405] },
-      { id: "rechno-fn-connect-onboarding", type: "api-health", target: "https://europe-west1-rechno-bf8d7.cloudfunctions.net/getConnectOnboardingLink", intervalMinutes: 5, enabled: true, expectedStatusCodes: [405] },
+      { id: "rechno-fn-checkout", type: "api-health", target: "https://createstripecheckoutsession-lhj7nrzybq-ew.a.run.app", intervalMinutes: 5, enabled: false, expectedStatusCodes: [405] },
+      { id: "rechno-fn-payment-status", type: "api-health", target: "https://checkstripepaymentstatus-lhj7nrzybq-ew.a.run.app", intervalMinutes: 5, enabled: false, expectedStatusCodes: [401] },
+      { id: "rechno-fn-webhook", type: "api-health", target: "https://stripewebhook-lhj7nrzybq-ew.a.run.app", intervalMinutes: 5, enabled: false, expectedStatusCodes: [400] },
+      { id: "rechno-fn-finalize-invoice", type: "api-health", target: "https://europe-west1-rechno-bf8d7.cloudfunctions.net/finalizeInvoice", intervalMinutes: 5, enabled: false, expectedStatusCodes: [405] },
+      { id: "rechno-fn-connect-create", type: "api-health", target: "https://europe-west1-rechno-bf8d7.cloudfunctions.net/createConnectAccount", intervalMinutes: 5, enabled: false, expectedStatusCodes: [405] },
+      { id: "rechno-fn-connect-onboarding", type: "api-health", target: "https://europe-west1-rechno-bf8d7.cloudfunctions.net/getConnectOnboardingLink", intervalMinutes: 5, enabled: false, expectedStatusCodes: [405] },
       // Business Signal "Connect Account Payment Ready" (isPaymentReady/
       // chargesEnabled/payoutsEnabled) ist NICHT read-only unauthenticated
       // pruefbar - dieser Check bleibt bewusst ein reiner Erreichbarkeits-
       // nachweis (siehe Abschlussbericht Punkt 22 "Nicht implementiert").
-      { id: "rechno-fn-connect-status", type: "api-health", target: "https://europe-west1-rechno-bf8d7.cloudfunctions.net/getConnectAccountStatus", intervalMinutes: 5, enabled: true, expectedStatusCodes: [401] },
-      { id: "rechno-fn-connect-dashboard", type: "api-health", target: "https://europe-west1-rechno-bf8d7.cloudfunctions.net/createExpressDashboardLink", intervalMinutes: 5, enabled: true, expectedStatusCodes: [405] },
+      { id: "rechno-fn-connect-status", type: "api-health", target: "https://europe-west1-rechno-bf8d7.cloudfunctions.net/getConnectAccountStatus", intervalMinutes: 5, enabled: false, expectedStatusCodes: [401] },
+      { id: "rechno-fn-connect-dashboard", type: "api-health", target: "https://europe-west1-rechno-bf8d7.cloudfunctions.net/createExpressDashboardLink", intervalMinutes: 5, enabled: false, expectedStatusCodes: [405] },
       // Ersetzt durch die 8 spezifischen Cloud-Function-Checks oben -
       // deaktiviert statt geloescht (Historie bleibt erhalten), kein
       // erfundenes generisches Ziel.
