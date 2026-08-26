@@ -51,6 +51,8 @@ import { platformSloRouter } from "./routes/platform-slo.routes";
 import { platformServicesRouter } from "./routes/platform-services.routes";
 import { onCallRouter } from "./routes/on-call.routes";
 import { escalationPoliciesRouter } from "./routes/escalation-policies.routes";
+import { todosRouter } from "./routes/todos.routes";
+import { emailsRouter } from "./routes/emails.routes";
 import { v1Router } from "./routes/v1";
 import { requestContextMiddleware } from "./middleware/request-context.middleware";
 import { errorHandler } from "./middleware/error-handler";
@@ -62,10 +64,12 @@ import { syncProjects } from "./db/projects.repository";
 import { closeRealtimeServer, initRealtimeServer } from "./realtime/websocket.server";
 import { getLocalAgentId, markLocalAgentOffline } from "./core/local-agent";
 import { getMonitoringAgentById } from "./db/monitoring-agents.repository";
+import { startEmailSync, stopEmailSync } from "./core/email-sync";
 
 const app = express();
 const port = process.env.PORT ?? 4000;
 const checkIntervalMs = Number(process.env.CHECK_INTERVAL_MS) || 30_000;
+const emailCheckIntervalMs = Number(process.env.EMAIL_CHECK_INTERVAL_MS) || 300_000;
 
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -120,6 +124,8 @@ app.use("/api", platformSloRouter);
 app.use("/api", platformServicesRouter);
 app.use("/api", onCallRouter);
 app.use("/api", escalationPoliciesRouter);
+app.use("/api", todosRouter);
+app.use("/api", emailsRouter);
 app.use("/api", reliabilityRouter);
 app.use("/api", problemsRouter);
 app.use("/api", resilienceRouter);
@@ -160,10 +166,12 @@ async function main(): Promise<void> {
 
   const scheduler = new Scheduler(monitorService, checkIntervalMs);
   scheduler.start();
+  startEmailSync(emailCheckIntervalMs);
 
   const shutdown = async (): Promise<void> => {
     logger.info("ProjectOps Backend wird beendet");
     scheduler.stop();
+    stopEmailSync();
     // Echtes AGENT_OFFLINE-Signal statt nur auf den Heartbeat-Timeout zu
     // warten (Phase 13 Teil 1) - Broadcast VOR closeRealtimeServer(), sonst
     // erreicht das Event keinen Client mehr.

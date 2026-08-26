@@ -1023,6 +1023,17 @@ export function useRealtime(): UseRealtimeResult {
           });
           break;
         }
+
+        case "TODO_UPDATED": {
+          void queryClient.invalidateQueries({ queryKey: ["todos"] });
+          break;
+        }
+
+        case "EMAIL_RECEIVED": {
+          void queryClient.invalidateQueries({ queryKey: ["emails"] });
+          pushNotification({ severity: "info", message: `Neue E-Mail: ${event.payload.subject ?? "(kein Betreff)"}` });
+          break;
+        }
       }
     };
 

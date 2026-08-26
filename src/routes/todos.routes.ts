@@ -1,0 +1,83 @@
+import { Router } from "express";
+import { z } from "zod";
+import { createTodo, deleteTodo, listTodos, updateTodo } from "../db/todos.repository";
+import { authenticate } from "../middleware/authenticate";
+import { notFoundError } from "../core/app-error";
+import { broadcast } from "../realtime/websocket.server";
+import { createEvent, RealtimeEventType } from "../realtime/events";
+
+// Todo-Panel unter KI-Buero - dieselbe "Shared Ops Console"-Konvention wie
+// /incidents, /projects etc. (siehe dortiger Kommentar): kein
+// projektbezogenes RBAC, jeder angemeldete Nutzer dieses internen
+// Einzelbetreiber-Tools sieht/verwaltet alle Todos.
+export const todosRouter = Router();
+
+function parseTodoId(req: import("express").Request): number | undefined {
+  const id = Number(req.params.id);
+  return Number.isInteger(id) ? id : undefined;
+}
+
+todosRouter.get("/todos", authenticate, async (req, res) => {
+  const projectId = typeof req.query.projectId === "string" ? req.query.projectId : undefined;
+  res.json(await listTodos({ ...(projectId ? { projectId } : {}) }));
+});
+
+const createSchema = z
+  .object({
+    projectId: z.string().trim().min(1).nullable().optional(),
+    title: z.string().trim().min(1).max(300),
+    description: z.string().trim().max(5000).nullable().optional(),
+  })
+  .strict();
+
+todosRouter.post("/todos", authenticate, async (req, res) => {
+  const parsed = createSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Ungueltige Eingabe", details: parsed.error.flatten() });
+    return;
+  }
+  const todo = await createTodo(parsed.data);
+  broadcast(createEvent(RealtimeEventType.TODO_UPDATED, todo));
+  res.status(201).json(todo);
+});
+
+const updateSchema = z
+  .object({
+    title: z.string().trim().min(1).max(300).optional(),
+    description: z.string().trim().max(5000).nullable().optional(),
+    done: z.boolean().optional(),
+  })
+  .strict();
+
+todosRouter.patch("/todos/:id", authenticate, async (req, res) => {
+  const id = parseTodoId(req);
+  if (id === undefined) {
+    res.status(400).json({ error: "Ungueltige Todo-ID" });
+    return;
+  }
+  const parsed = updateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Ungueltige Eingabe", details: parsed.error.flatten() });
+    return;
+  }
+  const todo = await updateTodo(id, parsed.data);
+  if (!todo) {
+    throw notFoundError("Todo nicht gefunden");
+  }
+  broadcast(createEvent(RealtimeEventType.TODO_UPDATED, todo));
+  res.json(todo);
+});
+
+todosRouter.delete("/todos/:id", authenticate, async (req, res) => {
+  const id = parseTodoId(req);
+  if (id === undefined) {
+    res.status(400).json({ error: "Ungueltige Todo-ID" });
+    return;
+  }
+  const todo = await deleteTodo(id);
+  if (!todo) {
+    throw notFoundError("Todo nicht gefunden");
+  }
+  broadcast(createEvent(RealtimeEventType.TODO_UPDATED, todo));
+  res.status(204).end();
+});
