@@ -17,7 +17,7 @@ import { OfficeDetailDrawer } from "../components/ai-office/OfficeDetailDrawer";
 import type { OfficeSelection } from "../components/ai-office/OfficeDetailDrawer";
 import { buildAgentSnapshots } from "../components/ai-office/officeConfig";
 import type { AgentStatus } from "../components/ai-office/officeConfig";
-import { TodosInboxPanel } from "../components/ai-office/TodosInboxPanel";
+import { TodosPanel } from "../components/ai-office/TodosPanel";
 import { getErrorMessage } from "../utils/getErrorMessage";
 
 // Kurzform des echten Projektnamens fuer die Schreibtisch-Beschriftung
@@ -174,7 +174,7 @@ export function AiOperationsOffice() {
     <PageContainer title="KI-Büro">
       <Tabs value={tab} onChange={(_e, value: "office" | "inbox") => setTab(value)} sx={{ mb: 2, minHeight: 0 }}>
         <Tab value="office" label="Büro" sx={{ minHeight: 0 }} />
-        <Tab value="inbox" label="Todos & Postfach" sx={{ minHeight: 0 }} />
+        <Tab value="inbox" label="Todos" sx={{ minHeight: 0 }} />
       </Tabs>
 
       {isLoading ? (
@@ -186,7 +186,7 @@ export function AiOperationsOffice() {
           <Box sx={{ display: tab === "office" ? "block" : "none" }}>
             <OfficeFloorScene agents={deskAgents} onSelectAgent={handleSelectAgent} />
           </Box>
-          {tab === "inbox" ? <TodosInboxPanel projects={projectOptions} /> : null}
+          {tab === "inbox" ? <TodosPanel projects={projectOptions} /> : null}
         </>
       )}
 

@@ -1,6 +1,5 @@
 import type { CheckResult } from "../types/check-result.types";
 import type { Todo } from "../types/todo.types";
-import type { Email } from "../types/email.types";
 import type { HealthStatus } from "../types/health.types";
 import type { Incident } from "../types/incident.types";
 import type { ProjectHealthSummary } from "../db/dashboard.repository";
@@ -324,12 +323,10 @@ export enum RealtimeEventType {
   // kein voller Overview-Payload doppelt uebertragen) - identisches Prinzip
   // zu INCIDENT_COMMAND_UPDATED/PROBLEM_UPDATED oben.
   RESILIENCE_STATUS_CHANGED = "RESILIENCE_STATUS_CHANGED",
-  // Todo-/Postfach-Panel unter KI-Buero. TODO_UPDATED deckt Create/Update/
-  // Toggle/Delete gemeinsam ab (Frontend invalidiert bei jedem gleich, keine
-  // separate Statuslogik pro Aktion noetig). EMAIL_RECEIVED begleitet
-  // core/email-sync.ts (neue Nachricht per IMAP-Polling gefunden).
+  // Todo-Panel unter KI-Buero. Deckt Create/Update/Toggle/Delete gemeinsam
+  // ab (Frontend invalidiert bei jedem gleich, keine separate Statuslogik
+  // pro Aktion noetig).
   TODO_UPDATED = "TODO_UPDATED",
-  EMAIL_RECEIVED = "EMAIL_RECEIVED",
 }
 
 export interface NotificationSentPayload {
@@ -689,8 +686,7 @@ export type RealtimeEvent =
   | { type: RealtimeEventType.INCIDENT_COMMAND_UPDATED; timestamp: string; payload: { incidentId: number } }
   | { type: RealtimeEventType.PROBLEM_UPDATED; timestamp: string; payload: { problemId: number; organizationId: string } }
   | { type: RealtimeEventType.RESILIENCE_STATUS_CHANGED; timestamp: string; payload: ResilienceStatusChangedPayload }
-  | { type: RealtimeEventType.TODO_UPDATED; timestamp: string; payload: Todo }
-  | { type: RealtimeEventType.EMAIL_RECEIVED; timestamp: string; payload: Email };
+  | { type: RealtimeEventType.TODO_UPDATED; timestamp: string; payload: Todo };
 
 // Ueberladungen statt eines generischen Parameters, damit `type` und
 // `payload` beim Aufruf gegeneinander typgeprueft werden (z.B. verhindert
@@ -814,7 +810,6 @@ export function createEvent(type: RealtimeEventType.INCIDENT_COMMAND_UPDATED, pa
 export function createEvent(type: RealtimeEventType.PROBLEM_UPDATED, payload: { problemId: number; organizationId: string }): RealtimeEvent;
 export function createEvent(type: RealtimeEventType.RESILIENCE_STATUS_CHANGED, payload: ResilienceStatusChangedPayload): RealtimeEvent;
 export function createEvent(type: RealtimeEventType.TODO_UPDATED, payload: Todo): RealtimeEvent;
-export function createEvent(type: RealtimeEventType.EMAIL_RECEIVED, payload: Email): RealtimeEvent;
 export function createEvent(type: RealtimeEventType, payload: RealtimeEvent["payload"]): RealtimeEvent {
   return { type, timestamp: new Date().toISOString(), payload } as RealtimeEvent;
 }

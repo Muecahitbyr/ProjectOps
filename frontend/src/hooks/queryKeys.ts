@@ -212,7 +212,6 @@ export const queryKeys = {
   // Phase 64 "Enterprise Operational Priority & Attention Management" -
   // ebenfalls unter dem "resilience"-Praefix (siehe oben).
   resilienceAttentionList: (params: import("../api/resilience.api").AttentionListParams) => ["resilience", "attention-list", params] as const,
-  // Todo-/Postfach-Panel unter KI-Buero.
+  // Todo-Panel unter KI-Buero.
   todos: (projectId?: string) => ["todos", projectId ?? "all"] as const,
-  emails: (limit: number) => ["emails", limit] as const,
 };
