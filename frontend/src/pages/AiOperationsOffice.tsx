@@ -1,7 +1,4 @@
 import { useCallback, useMemo, useState } from "react";
-import Tabs from "@mui/material/Tabs";
-import Tab from "@mui/material/Tab";
-import Box from "@mui/material/Box";
 import { PageContainer } from "../components/layout/PageContainer";
 import { LoadingState } from "../components/common/LoadingState";
 import { ErrorState } from "../components/common/ErrorState";
@@ -17,7 +14,6 @@ import { OfficeDetailDrawer } from "../components/ai-office/OfficeDetailDrawer";
 import type { OfficeSelection } from "../components/ai-office/OfficeDetailDrawer";
 import { buildAgentSnapshots } from "../components/ai-office/officeConfig";
 import type { AgentStatus } from "../components/ai-office/officeConfig";
-import { TodosPanel } from "../components/ai-office/TodosPanel";
 import { getErrorMessage } from "../utils/getErrorMessage";
 
 // Kurzform des echten Projektnamens fuer die Schreibtisch-Beschriftung
@@ -50,10 +46,6 @@ const STATUS_PRIORITY: Record<AgentStatus, number> = { BLOCKED: 0, WAITING: 1, W
 // Apps/Webseiten-Einordnung. Keine neue Engine, keine neue Datenquelle.
 export function AiOperationsOffice() {
   const [selection, setSelection] = useState<OfficeSelection>(null);
-  // Zweiter Reiter neben der Buero-Visualisierung (Nutzerwunsch: Todos +
-  // Postfach-Uebersicht "unter KI-Buero"). Reiner UI-Zustand, keine eigene
-  // Route - beide Reiter teilen sich denselben Seitentitel/-rahmen.
-  const [tab, setTab] = useState<"office" | "inbox">("office");
 
   const projectsQuery = useProjectsHealth();
   // Automation Rules/Actions/Executions sind (wie die zugrunde liegende
@@ -165,29 +157,14 @@ export function AiOperationsOffice() {
     projectsQuery.isLoading || rulesQuery.isLoading || actionsQuery.isLoading || executionsQuery.isLoading || incidentsQuery.isLoading;
   const firstError = projectsQuery.error ?? rulesQuery.error ?? actionsQuery.error ?? executionsQuery.error ?? incidentsQuery.error;
 
-  const projectOptions = useMemo(
-    () => (projectsQuery.data ?? []).map((project) => ({ id: project.id, name: project.name })),
-    [projectsQuery.data],
-  );
-
   return (
     <PageContainer title="KI-Büro">
-      <Tabs value={tab} onChange={(_e, value: "office" | "inbox") => setTab(value)} sx={{ mb: 2, minHeight: 0 }}>
-        <Tab value="office" label="Büro" sx={{ minHeight: 0 }} />
-        <Tab value="inbox" label="Todos" sx={{ minHeight: 0 }} />
-      </Tabs>
-
       {isLoading ? (
         <LoadingState label="Opening the office..." />
       ) : firstError ? (
         <ErrorState message={getErrorMessage(firstError)} onRetry={() => rulesQuery.refetch()} />
       ) : (
-        <>
-          <Box sx={{ display: tab === "office" ? "block" : "none" }}>
-            <OfficeFloorScene agents={deskAgents} onSelectAgent={handleSelectAgent} />
-          </Box>
-          {tab === "inbox" ? <TodosPanel projects={projectOptions} /> : null}
-        </>
+        <OfficeFloorScene agents={deskAgents} onSelectAgent={handleSelectAgent} />
       )}
 
       <OfficeDetailDrawer selection={selection} onClose={handleCloseDrawer} />
