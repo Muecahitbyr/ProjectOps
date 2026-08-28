@@ -125,7 +125,7 @@ const OfficeDesk = memo(function OfficeDesk({ agent, color, away, onSelectAgent,
   return (
     <Box ref={deskRef} sx={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", width: 74 }}>
       {speech && !away ? (
-        <Box sx={{ position: "absolute", bottom: "100%", mb: 0.5, maxWidth: { xs: 92, sm: 130 }, zIndex: 4 }}>
+        <Box sx={{ position: "absolute", bottom: "100%", mb: 0.5, maxWidth: { xs: 92, sm: 130, md: 170 }, zIndex: 4 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.6, backgroundColor: "#fff", color: "#2a2a2a", borderRadius: "10px 10px 10px 2px", px: 1, py: 0.5, boxShadow: "0 2px 6px rgba(0,0,0,0.18)", whiteSpace: "nowrap", overflow: "hidden" }}>
             <Box sx={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: isBlocked ? "#e5533d" : color, flexShrink: 0 }} />
             <Box sx={{ fontSize: "0.6rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}>{speech}</Box>

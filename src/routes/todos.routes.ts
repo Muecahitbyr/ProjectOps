@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { createTodo, deleteTodo, listDistinctCategories, listTodos, moveTodo, updateTodo } from "../db/todos.repository";
+import { createTodo, deleteTodo, listDistinctCategories, listTodos, reorderTodos, updateTodo } from "../db/todos.repository";
 import { authenticate } from "../middleware/authenticate";
 import { notFoundError } from "../core/app-error";
 import { broadcast } from "../realtime/websocket.server";
@@ -63,6 +63,31 @@ const updateSchema = z
   })
   .strict();
 
+const reorderSchema = z
+  .object({
+    category: z.string().trim().min(1).max(120).nullable(),
+    orderedIds: z.array(z.number().int()).min(1),
+  })
+  .strict();
+
+// Komplette neue Reihenfolge einer Kategorie nach Drag&Drop (Touch oder
+// Maus, siehe TodosPanel.tsx) - Nutzerwunsch "Reihenfolge soll man auch
+// aendern koennen, auf dem iPhone auch mit der Hand". MUSS vor
+// "/todos/:id" registriert sein, sonst matcht Express faelschlich
+// ":id" = "reorder".
+todosRouter.patch("/todos/reorder", authenticate, async (req, res) => {
+  const parsed = reorderSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Ungueltige Eingabe", details: parsed.error.flatten() });
+    return;
+  }
+  const changed = await reorderTodos(parsed.data.category, parsed.data.orderedIds);
+  for (const todo of changed) {
+    broadcast(createEvent(RealtimeEventType.TODO_UPDATED, todo));
+  }
+  res.json(changed);
+});
+
 todosRouter.patch("/todos/:id", authenticate, async (req, res) => {
   const id = parseTodoId(req);
   if (id === undefined) {
@@ -80,32 +105,6 @@ todosRouter.patch("/todos/:id", authenticate, async (req, res) => {
   }
   broadcast(createEvent(RealtimeEventType.TODO_UPDATED, todo));
   res.json(todo);
-});
-
-const moveSchema = z.object({ direction: z.enum(["up", "down"]) }).strict();
-
-// Vertauscht die Reihenfolge mit dem direkten Nachbarn innerhalb derselben
-// Kategorie (siehe db/todos.repository.ts::moveTodo) - Nutzerwunsch
-// "Reihenfolge soll man auch aendern koennen".
-todosRouter.post("/todos/:id/move", authenticate, async (req, res) => {
-  const id = parseTodoId(req);
-  if (id === undefined) {
-    res.status(400).json({ error: "Ungueltige Todo-ID" });
-    return;
-  }
-  const parsed = moveSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Ungueltige Eingabe", details: parsed.error.flatten() });
-    return;
-  }
-  const changed = await moveTodo(id, parsed.data.direction);
-  if (!changed) {
-    throw notFoundError("Todo nicht gefunden");
-  }
-  for (const todo of changed) {
-    broadcast(createEvent(RealtimeEventType.TODO_UPDATED, todo));
-  }
-  res.json(changed);
 });
 
 todosRouter.delete("/todos/:id", authenticate, async (req, res) => {

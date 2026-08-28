@@ -23,8 +23,8 @@ export async function updateTodo(id: number, input: UpdateTodoInput): Promise<To
   return data;
 }
 
-export async function moveTodo(id: number, direction: "up" | "down"): Promise<Todo[]> {
-  const { data } = await apiClient.post<Todo[]>(`/api/todos/${id}/move`, { direction });
+export async function reorderTodos(category: string | null, orderedIds: number[]): Promise<Todo[]> {
+  const { data } = await apiClient.patch<Todo[]>("/api/todos/reorder", { category, orderedIds });
   return data;
 }
 

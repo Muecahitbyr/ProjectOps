@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createTodo, deleteTodo, fetchTodoCategories, fetchTodos, moveTodo, updateTodo } from "../api/todos.api";
+import { createTodo, deleteTodo, fetchTodoCategories, fetchTodos, reorderTodos, updateTodo } from "../api/todos.api";
 import { queryKeys } from "./queryKeys";
 import type { CreateTodoInput, UpdateTodoInput } from "../types/todo.types";
 
@@ -37,10 +37,10 @@ export function useUpdateTodo() {
   });
 }
 
-export function useMoveTodo() {
+export function useReorderTodos() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, direction }: { id: number; direction: "up" | "down" }) => moveTodo(id, direction),
+    mutationFn: ({ category, orderedIds }: { category: string | null; orderedIds: number[] }) => reorderTodos(category, orderedIds),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["todos"] });
     },

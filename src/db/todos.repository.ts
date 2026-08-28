@@ -123,30 +123,35 @@ export async function deleteTodo(id: number): Promise<Todo | undefined> {
   return rows[0] ? mapRow(rows[0]) : undefined;
 }
 
-// Vertauscht die Position mit dem direkten Nachbarn INNERHALB derselben
-// Kategorie (so wie die Liste im Frontend gruppiert/angezeigt wird) - kein
-// globales Neu-Nummerieren aller Zeilen noetig, nur die zwei betroffenen.
-export async function moveTodo(id: number, direction: "up" | "down"): Promise<Todo[] | undefined> {
-  const current = await getTodoById(id);
-  if (!current) return undefined;
-
-  const comparator = direction === "up" ? "<" : ">";
-  const order = direction === "up" ? "DESC" : "ASC";
-  const categoryCondition = current.category === null ? "category IS NULL" : "category = $2";
-  const params = current.category === null ? [current.position] : [current.position, current.category];
-
-  const { rows: neighborRows } = await pool.query<TodoRow>(
-    `SELECT ${TODO_COLUMNS} FROM todos WHERE position ${comparator} $1 AND ${categoryCondition} ORDER BY position ${order} LIMIT 1`,
+// Per Drag&Drop (Touch oder Maus, siehe TodosPanel.tsx) neu sortierte
+// Reihenfolge INNERHALB einer Kategorie persistieren. orderedIds ist die
+// komplette neue Reihenfolge der Todo-Ids dieser Kategorie. Die schon
+// vorhandenen position-Werte dieser Kategorie werden lediglich neu
+// VERTEILT (nicht neu erfunden) - andere Kategorien bleiben unberuehrt.
+export async function reorderTodos(category: string | null, orderedIds: number[]): Promise<Todo[]> {
+  const categoryCondition = category === null ? "category IS NULL" : "category = $1";
+  const params = category === null ? [] : [category];
+  const { rows } = await pool.query<TodoRow>(
+    `SELECT ${TODO_COLUMNS} FROM todos WHERE ${categoryCondition} ORDER BY position ASC`,
     params,
   );
-  const neighbor = neighborRows[0] ? mapRow(neighborRows[0]) : undefined;
-  if (!neighbor) return [current];
+  const existing = rows.map(mapRow);
+  const positions = existing.map((t) => t.position);
+
+  // Nur echte Mitglieder dieser Kategorie beruecksichtigen; fehlende IDs
+  // (z.B. durch eine zwischenzeitliche Aenderung) werden hinten in ihrer
+  // bisherigen Reihenfolge angehaengt, statt sie zu verlieren.
+  const knownIds = new Set(existing.map((t) => t.id));
+  const validOrderedIds = orderedIds.filter((id) => knownIds.has(id));
+  const remainingIds = existing.map((t) => t.id).filter((id) => !validOrderedIds.includes(id));
+  const finalOrder = [...validOrderedIds, ...remainingIds];
 
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    await client.query(`UPDATE todos SET position = $1, updated_at = now() WHERE id = $2`, [neighbor.position, current.id]);
-    await client.query(`UPDATE todos SET position = $1, updated_at = now() WHERE id = $2`, [current.position, neighbor.id]);
+    for (let i = 0; i < finalOrder.length; i++) {
+      await client.query(`UPDATE todos SET position = $1, updated_at = now() WHERE id = $2`, [positions[i], finalOrder[i]]);
+    }
     await client.query("COMMIT");
   } catch (err) {
     await client.query("ROLLBACK");
@@ -155,7 +160,6 @@ export async function moveTodo(id: number, direction: "up" | "down"): Promise<To
     client.release();
   }
 
-  const updatedCurrent = await getTodoById(current.id);
-  const updatedNeighbor = await getTodoById(neighbor.id);
-  return [updatedCurrent, updatedNeighbor].filter((t): t is Todo => t !== undefined);
+  const updated = await Promise.all(finalOrder.map((id) => getTodoById(id)));
+  return updated.filter((t): t is Todo => t !== undefined);
 }
