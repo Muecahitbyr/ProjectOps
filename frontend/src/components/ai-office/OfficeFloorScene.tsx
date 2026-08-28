@@ -564,10 +564,21 @@ function OfficeLyingCharacter({ color }: { color: string }) {
 // Ziel hat einen echten Zweck (Kaffee holen/Kuehlschrank/liegen/lesen)
 // statt aufs freie Herumstehen auf leerer Flaeche.
 type WalkDestination = "coffee" | "fridge" | "chill" | "books";
-const DESTINATION_ITEM: Record<WalkDestination, string> = { coffee: "☕", fridge: "🥤", chill: "😌", books: "📖" };
+const DESTINATION_TEXT: Record<WalkDestination, string> = { coffee: "☕ Kaffeepause", fridge: "🥤 Snack holen", chill: "😌 Chillen", books: "📖 Lesen" };
 // Nutzerwunsch: Leute sollen deutlich oefter/mehr gleichzeitig unterwegs
 // sein, auch wenn das "unnoetig" ist - erhoeht gegenueber vorher (3).
 const MAX_CONCURRENT_WALKERS = 6;
+
+// Nutzerwunsch: am Kuehlschrank standen bei mehreren gleichzeitigen
+// Laeufern alle exakt uebereinander (nur eine Person sichtbar), weil
+// Kaffeemaschine/Kuehlschrank bisher nur EINEN festen Zielpunkt hatten -
+// anders als Betten/Sitzplaetze, die schon je einen eigenen Slot pro Person
+// hatten. Jetzt bekommen auch Kaffee/Kuehlschrank mehrere Slots (per
+// Offset vom selben Element aus berechnet, da es dafuer nur ein einzelnes
+// DOM-Element gibt statt mehrerer einzeln registrierter wie bei den Betten).
+const FRIDGE_SLOTS = 3;
+const COFFEE_SLOTS = 3;
+const KITCHEN_SLOT_OFFSETS_X = [0, -20, 20];
 
 // Konstante Gehgeschwindigkeit statt fixer Dauer - vorher liefen alle
 // Strecken (kurz oder lang) in derselben Zeit ab, wirkte je nach Distanz
@@ -581,9 +592,11 @@ interface WalkerState {
   agentId: string;
   color: string;
   destination: WalkDestination;
-  // Nur gesetzt bei destination === "chill" (welches Bett) oder "books"
-  // (welcher Sitzplatz) - damit sich zwei Personen nicht denselben Platz
-  // teilen. Reserviert schon beim Losgehen, nicht erst bei Ankunft.
+  // Bei "chill"/"books" welches Bett/welcher Sitzplatz, bei "coffee"/
+  // "fridge" welcher der KITCHEN_SLOT_OFFSETS_X-Plaetze - in allen vier
+  // Faellen so, dass sich zwei Personen nie denselben Platz/Punkt teilen
+  // und dadurch sichtbar uebereinander stehen. Reserviert schon beim
+  // Losgehen, nicht erst bei Ankunft.
   slotIndex?: number;
   from: { x: number; y: number };
   to: { x: number; y: number };
@@ -632,6 +645,38 @@ function PlantHanging() {
       {[-6, 0, 6].map((dx) => (
         <Box key={dx} sx={{ position: "absolute", top: 21, left: `calc(50% + ${dx}px)`, width: 2.5, height: 18 + (dx === 0 ? 5 : 0), backgroundColor: "#6ea05f", borderRadius: 2, transformOrigin: "top", transform: `rotate(${dx}deg)` }} />
       ))}
+    </Box>
+  );
+}
+
+// Gedankenblase fuer Personen an ihrem Pausenziel - eigener, "wolkiger" Stil
+// (Pille + zwei auslaufende Kreise darunter, klassische Denkblase) statt der
+// eckigen Sprech-Sprechblase an den Schreibtischen, damit optisch klar ist:
+// das hier ist eine Pause/ein Gedanke, kein Arbeits-Status. Poppt beim
+// Erscheinen kurz ein statt einfach starr aufzutauchen (Nutzerwunsch:
+// "cooler animieren").
+function WalkerThoughtBubble({ text }: { text: string }) {
+  return (
+    <Box
+      sx={{
+        position: "absolute",
+        bottom: "100%",
+        left: "50%",
+        transform: "translateX(-50%)",
+        mb: 0.75,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        zIndex: 6,
+        animation: "office-thought-pop 0.35s cubic-bezier(0.34,1.56,0.64,1)",
+        "@keyframes office-thought-pop": { "0%": { opacity: 0, transform: "translateX(-50%) scale(0.4)" }, "100%": { opacity: 1, transform: "translateX(-50%) scale(1)" } },
+      }}
+    >
+      <Box sx={{ backgroundColor: "#fff", color: "#2a2a2a", borderRadius: "999px", px: 1.1, py: 0.4, fontSize: "0.62rem", fontWeight: 700, whiteSpace: "nowrap", boxShadow: "0 2px 6px rgba(0,0,0,0.18)" }}>
+        {text}
+      </Box>
+      <Box sx={{ position: "relative", left: 8, width: 7, height: 7, borderRadius: "50%", backgroundColor: "#fff", mt: "3px", boxShadow: "0 1px 3px rgba(0,0,0,0.15)" }} />
+      <Box sx={{ position: "relative", left: 14, width: 4, height: 4, borderRadius: "50%", backgroundColor: "#fff", mt: "2px", boxShadow: "0 1px 2px rgba(0,0,0,0.12)" }} />
     </Box>
   );
 }
@@ -793,10 +838,25 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
         to = { x: slotRect.left + slotRect.width / 2 - containerRect.left, y: slotRect.bottom - containerRect.top - 14 };
         slotIndex = freeIndex;
       } else {
+        // Wie oben bei Bett/Sitzplatz: freien Slot suchen statt immer
+        // denselben Punkt anzulaufen - sonst stehen mehrere Personen exakt
+        // uebereinander (Nutzer-Feedback "am Kuehlschrank sieht man nur
+        // einen"). Kaffeemaschine/Kuehlschrank haben nur EIN DOM-Element,
+        // die Slots sind daher feste x-Offsets von dessen Mittelpunkt statt
+        // je eines eigenen registrierten Elements.
         const destinationEl = destination === "coffee" ? coffeeElRef.current : fridgeElRef.current;
         if (!destinationEl) return;
+        const slotCount = destination === "coffee" ? COFFEE_SLOTS : FRIDGE_SLOTS;
+        const occupied = new Set(
+          Array.from(current.values())
+            .filter((w) => w.destination === destination)
+            .map((w) => w.slotIndex),
+        );
+        const freeIndex = Array.from({ length: slotCount }, (_, i) => i).find((i) => !occupied.has(i));
+        if (freeIndex === undefined) return;
         const destRect = destinationEl.getBoundingClientRect();
-        to = { x: destRect.left + destRect.width / 2 - containerRect.left, y: destRect.bottom - containerRect.top - 14 };
+        to = { x: destRect.left + destRect.width / 2 - containerRect.left + (KITCHEN_SLOT_OFFSETS_X[freeIndex] ?? 0), y: destRect.bottom - containerRect.top - 14 };
+        slotIndex = freeIndex;
       }
 
       // Konstante Geschwindigkeit: Dauer aus der echten Distanz berechnet,
@@ -1003,6 +1063,7 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
         if (walker.atDestination && walker.destination === "chill") {
           return (
             <Box key={walker.agentId} sx={{ position: "absolute", left: walker.pos.x, top: walker.pos.y, transform: "translate(-52%, -30px)", transition: `left ${walker.durationMs}ms ease-in-out, top ${walker.durationMs}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
+              <WalkerThoughtBubble text={DESTINATION_TEXT.chill} />
               <OfficeLyingCharacter color={walker.color} />
             </Box>
           );
@@ -1010,15 +1071,14 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
         if (walker.atDestination && walker.destination === "books") {
           return (
             <Box key={walker.agentId} sx={{ position: "absolute", left: walker.pos.x, top: walker.pos.y, transform: "translate(-50%, -34px)", transition: `left ${walker.durationMs}ms ease-in-out, top ${walker.durationMs}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
+              <WalkerThoughtBubble text={DESTINATION_TEXT.books} />
               <OfficeSittingCharacter color={walker.color} />
             </Box>
           );
         }
         return (
           <Box key={walker.agentId} sx={{ position: "absolute", left: walker.pos.x, top: walker.pos.y, transform: "translate(-50%, -100%)", transition: `left ${walker.durationMs}ms ease-in-out, top ${walker.durationMs}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
-            {walker.atDestination && DESTINATION_ITEM[walker.destination] ? (
-              <Box sx={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", fontSize: 18 }}>{DESTINATION_ITEM[walker.destination]}</Box>
-            ) : null}
+            {walker.atDestination ? <WalkerThoughtBubble text={DESTINATION_TEXT[walker.destination]} /> : null}
             <OfficeCharacter status="IDLE" walking={walker.walking} color={walker.color} label="Pause" onClick={() => undefined} tooltip="Pause" />
           </Box>
         );
