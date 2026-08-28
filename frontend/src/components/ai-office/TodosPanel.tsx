@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
+import CardHeader from "@mui/material/CardHeader";
 import CardContent from "@mui/material/CardContent";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -11,8 +12,15 @@ import Checkbox from "@mui/material/Checkbox";
 import IconButton from "@mui/material/IconButton";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogActions from "@mui/material/DialogActions";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
-import { useTodos, useTodoCategories, useCreateTodo, useUpdateTodo, useDeleteTodo } from "../../hooks/useTodos";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import { useTodos, useTodoCategories, useCreateTodo, useUpdateTodo, useDeleteTodo, useMoveTodo } from "../../hooks/useTodos";
 import { LoadingState } from "../common/LoadingState";
 import { ErrorState } from "../common/ErrorState";
 import { getErrorMessage } from "../../utils/getErrorMessage";
@@ -31,51 +39,89 @@ function colorForCategory(name: string): string {
   return CATEGORY_COLORS[hash % CATEGORY_COLORS.length]!;
 }
 
-// Todo-Panel unter KI-Buero (zweiter Reiter neben der Buero-Visualisierung,
-// siehe AiOperationsOffice.tsx). Kategorie ist freier Text statt an die vier
-// ueberwachten Projekte gebunden (Migration 0067) - deckt auch eigene
-// Vorhaben ausserhalb von ProjectOps ab (z.B. "cmd Gebäudereinigung").
-// Gleicher Card/Grid-Stil wie Settings.tsx, statt einer eigenen Optik.
+function formatDueDate(dueDate: string): string {
+  const [year, month, day] = dueDate.split("-");
+  return `${day}.${month}.${year!.slice(2)}`;
+}
+
+function isOverdue(dueDate: string): boolean {
+  return dueDate < new Date().toISOString().slice(0, 10);
+}
+
+// Todo-Panel unter KI-Buero (eigene Seite/Nav-Eintrag, siehe pages/Todos.tsx)
+// - Nutzerwuensche in dieser Fassung: Deadline je Todo, ein Ja/Nein-Dialog
+// beim Abhaken ("muss das getestet werden?") der erledigte, aber noch zu
+// testende Eintraege in einen eigenen Bereich verschiebt, und eine per
+// Pfeiltasten aenderbare Reihenfolge (position, siehe Migration 0068).
 export function TodosPanel({ projects }: { projects: { id: string; name: string }[] }) {
   const todosQuery = useTodos();
   const categoriesQuery = useTodoCategories();
   const createTodo = useCreateTodo();
   const updateTodo = useUpdateTodo();
   const deleteTodo = useDeleteTodo();
+  const moveTodo = useMoveTodo();
 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  // Todo, fuer das gerade der "muss getestet werden?"-Dialog offen ist -
+  // null = kein Dialog offen.
+  const [pendingTestPrompt, setPendingTestPrompt] = useState<Todo | null>(null);
 
-  // Vorschlagsliste (natives <datalist>, kein MUI Autocomplete - das hatte
-  // hier ein sichtbares Rendering-Problem mit seinem Clear-Icon): bereits
-  // genutzte Kategorien + Namen der echten ueberwachten Projekte,
-  // dedupliziert. Freie Eingabe bleibt trotzdem jederzeit moeglich.
   const categoryOptions = useMemo(() => {
     const set = new Set<string>(categoriesQuery.data ?? []);
     for (const p of projects) set.add(p.name);
     return [...set].sort((a, b) => a.localeCompare(b));
   }, [categoriesQuery.data, projects]);
 
+  const allTodos = todosQuery.data ?? [];
+  // Aktive, normale Liste: weder erledigt noch gerade im Test-Wartebereich.
+  const activeTodos = allTodos.filter((t) => !t.done && !t.needsTesting);
+  const doneTodos = allTodos.filter((t) => t.done);
+  const testingTodos = allTodos.filter((t) => t.needsTesting && !t.done);
+
   const grouped = useMemo(() => {
     const groups = new Map<string, Todo[]>();
-    for (const todo of todosQuery.data ?? []) {
+    for (const todo of [...activeTodos, ...doneTodos]) {
       const key = todo.category ?? GENERAL_KEY;
       const list = groups.get(key);
       if (list) list.push(todo);
       else groups.set(key, [todo]);
     }
+    for (const list of groups.values()) list.sort((a, b) => Number(a.done) - Number(b.done) || a.position - b.position);
     return groups;
-  }, [todosQuery.data]);
+  }, [activeTodos, doneTodos]);
 
-  const total = (todosQuery.data ?? []).length;
-  const openCount = (todosQuery.data ?? []).filter((t) => !t.done).length;
+  const openCount = activeTodos.length + testingTodos.length;
 
   const handleAdd = () => {
     const trimmed = title.trim();
     if (!trimmed) return;
-    createTodo.mutate({ title: trimmed, category: category.trim() || null });
+    createTodo.mutate({ title: trimmed, category: category.trim() || null, dueDate: dueDate || null });
     setTitle("");
     setCategory("");
+    setDueDate("");
+  };
+
+  // Checkbox angehakt -> statt sofort "erledigt" zu setzen, erst fragen, ob
+  // ein Test noetig ist (Nutzerwunsch). Checkbox WIEDER abgehakt braucht
+  // keine Rueckfrage.
+  const handleToggle = (todo: Todo, checked: boolean) => {
+    if (!checked) {
+      updateTodo.mutate({ id: todo.id, input: { done: false, needsTesting: false } });
+      return;
+    }
+    setPendingTestPrompt(todo);
+  };
+
+  const resolveTestPrompt = (needsTesting: boolean) => {
+    if (!pendingTestPrompt) return;
+    if (needsTesting) {
+      updateTodo.mutate({ id: pendingTestPrompt.id, input: { needsTesting: true } });
+    } else {
+      updateTodo.mutate({ id: pendingTestPrompt.id, input: { done: true } });
+    }
+    setPendingTestPrompt(null);
   };
 
   return (
@@ -86,7 +132,7 @@ export function TodosPanel({ projects }: { projects: { id: string; name: string 
             <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "baseline", mb: 2 }}>
               <Typography variant="h3">Todos</Typography>
               <Typography variant="body2" color="text.secondary">
-                {total === 0 ? "Keine Todos" : openCount === 0 ? "Alles erledigt" : `${openCount} von ${total} offen`}
+                {allTodos.length === 0 ? "Keine Todos" : openCount === 0 ? "Alles erledigt" : `${openCount} offen`}
               </Typography>
             </Stack>
 
@@ -115,6 +161,15 @@ export function TodosPanel({ projects }: { projects: { id: string; name: string 
                   slotProps={{ htmlInput: { list: CATEGORY_LIST_ID } }}
                   fullWidth
                 />
+                <TextField
+                  size="small"
+                  type="date"
+                  label="Erledigen bis"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                  sx={{ minWidth: 170, flexShrink: 0 }}
+                />
                 <Button
                   variant="contained"
                   onClick={handleAdd}
@@ -130,7 +185,7 @@ export function TodosPanel({ projects }: { projects: { id: string; name: string 
               <LoadingState label="Todos laden..." minHeight={120} />
             ) : todosQuery.error ? (
               <ErrorState message={getErrorMessage(todosQuery.error)} onRetry={() => todosQuery.refetch()} minHeight={120} />
-            ) : total === 0 ? (
+            ) : allTodos.length === 0 ? (
               <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
                 Noch keine Todos angelegt.
               </Typography>
@@ -154,20 +209,16 @@ export function TodosPanel({ projects }: { projects: { id: string; name: string 
                           <Stack
                             key={todo.id}
                             direction="row"
-                            spacing={1}
+                            spacing={0.25}
                             sx={{
                               alignItems: "center",
                               borderRadius: 2,
                               px: 1,
                               "&:hover": { backgroundColor: "action.hover" },
-                              "&:hover .todo-delete": { opacity: 1 },
+                              "&:hover .todo-actions": { opacity: 1 },
                             }}
                           >
-                            <Checkbox
-                              size="small"
-                              checked={todo.done}
-                              onChange={(e) => updateTodo.mutate({ id: todo.id, input: { done: e.target.checked } })}
-                            />
+                            <Checkbox size="small" checked={todo.done} onChange={(e) => handleToggle(todo, e.target.checked)} />
                             <Typography
                               variant="body2"
                               sx={{
@@ -178,15 +229,30 @@ export function TodosPanel({ projects }: { projects: { id: string; name: string 
                             >
                               {todo.title}
                             </Typography>
-                            <IconButton
-                              className="todo-delete"
-                              size="small"
-                              onClick={() => deleteTodo.mutate(todo.id)}
-                              aria-label="Todo löschen"
-                              sx={{ opacity: { xs: 1, sm: 0 }, transition: "opacity 0.15s ease" }}
-                            >
-                              <DeleteOutlineIcon fontSize="small" />
-                            </IconButton>
+                            {todo.dueDate && !todo.done ? (
+                              <Chip
+                                label={`bis ${formatDueDate(todo.dueDate)}`}
+                                size="small"
+                                sx={{
+                                  height: 18,
+                                  fontSize: "0.62rem",
+                                  backgroundColor: isOverdue(todo.dueDate) ? "#ef44441f" : "action.hover",
+                                  color: isOverdue(todo.dueDate) ? "#ef4444" : "text.secondary",
+                                  fontWeight: isOverdue(todo.dueDate) ? 700 : 400,
+                                }}
+                              />
+                            ) : null}
+                            <Stack direction="row" className="todo-actions" sx={{ opacity: { xs: 1, sm: 0 }, transition: "opacity 0.15s ease" }}>
+                              <IconButton size="small" onClick={() => moveTodo.mutate({ id: todo.id, direction: "up" })} aria-label="Nach oben">
+                                <KeyboardArrowUpIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton size="small" onClick={() => moveTodo.mutate({ id: todo.id, direction: "down" })} aria-label="Nach unten">
+                                <KeyboardArrowDownIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton size="small" onClick={() => deleteTodo.mutate(todo.id)} aria-label="Todo löschen">
+                                <DeleteOutlineIcon fontSize="small" />
+                              </IconButton>
+                            </Stack>
                           </Stack>
                         ))}
                       </Stack>
@@ -198,6 +264,66 @@ export function TodosPanel({ projects }: { projects: { id: string; name: string 
           </CardContent>
         </Card>
       </Grid>
+
+      {testingTodos.length > 0 ? (
+        <Grid size={{ xs: 12, md: 8 }}>
+          <Card sx={{ borderColor: "#eab308", borderWidth: 1, borderStyle: "solid" }}>
+            <CardHeader
+              title="Zu testen"
+              subheader={`${testingTodos.length} wartet auf Test`}
+              slotProps={{ title: { variant: "h6" } }}
+            />
+            <CardContent sx={{ pt: 0 }}>
+              <Stack spacing={0.5}>
+                {testingTodos.map((todo) => (
+                  <Stack
+                    key={todo.id}
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: "center", borderRadius: 2, px: 1, "&:hover": { backgroundColor: "action.hover" } }}
+                  >
+                    <Checkbox
+                      size="small"
+                      checked={false}
+                      onChange={() => updateTodo.mutate({ id: todo.id, input: { done: true } })}
+                    />
+                    <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                      {todo.title}
+                    </Typography>
+                    <Chip
+                      label={todo.category ?? "Allgemein"}
+                      size="small"
+                      sx={{
+                        height: 18,
+                        fontSize: "0.62rem",
+                        backgroundColor: `${colorForCategory(todo.category ?? "Allgemein")}1f`,
+                        color: colorForCategory(todo.category ?? "Allgemein"),
+                        fontWeight: 700,
+                      }}
+                    />
+                  </Stack>
+                ))}
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+      ) : null}
+
+      <Dialog open={pendingTestPrompt !== null} onClose={() => setPendingTestPrompt(null)}>
+        <DialogTitle>Muss das getestet werden?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {pendingTestPrompt ? `"${pendingTestPrompt.title}"` : ""} — wenn ja, wandert es in den Bereich "Zu testen",
+            statt direkt als erledigt zu gelten.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => resolveTestPrompt(false)}>Nein</Button>
+          <Button onClick={() => resolveTestPrompt(true)} variant="contained">
+            Ja
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Grid>
   );
 }

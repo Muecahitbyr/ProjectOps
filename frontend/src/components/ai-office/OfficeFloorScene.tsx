@@ -565,7 +565,9 @@ function OfficeLyingCharacter({ color }: { color: string }) {
 // statt aufs freie Herumstehen auf leerer Flaeche.
 type WalkDestination = "coffee" | "fridge" | "chill" | "books";
 const DESTINATION_ITEM: Record<WalkDestination, string> = { coffee: "☕", fridge: "🥤", chill: "😌", books: "📖" };
-const MAX_CONCURRENT_WALKERS = 3;
+// Nutzerwunsch: Leute sollen deutlich oefter/mehr gleichzeitig unterwegs
+// sein, auch wenn das "unnoetig" ist - erhoeht gegenueber vorher (3).
+const MAX_CONCURRENT_WALKERS = 6;
 
 // Konstante Gehgeschwindigkeit statt fixer Dauer - vorher liefen alle
 // Strecken (kurz oder lang) in derselben Zeit ab, wirkte je nach Distanz
@@ -753,7 +755,8 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
       if (current.size >= MAX_CONCURRENT_WALKERS) return;
       // Nicht bei jeder Gelegenheit sofort jemanden losschicken - staffelt
       // die Starts natuerlicher, statt dass immer alle auf einmal aufstehen.
-      if (Math.random() > 0.6) return;
+      // Schwelle deutlich erhoeht (Nutzerwunsch: oefter/mehr Leute unterwegs).
+      if (Math.random() > 0.85) return;
       // Auf Nutzerwunsch laufen alle Nicht-BLOCKED-Agenten herum, unabhaengig
       // vom sonstigen Status (Working/Waiting/Completed/Idle) - einzig
       // "kaputt" (BLOCKED, brennender Schreibtisch) soll optisch zaehlen,
@@ -828,7 +831,7 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
       schedule(() => updateWalker(agentId, (w) => ({ ...w, walking: false, atDestination: true })), durationMs);
       schedule(() => updateWalker(agentId, (w) => ({ ...w, pos: w.from, walking: true, atDestination: false })), durationMs + stayMs);
       schedule(() => updateWalker(agentId, () => null), durationMs + stayMs + durationMs);
-    }, 4000);
+    }, 2200);
 
     return () => {
       clearInterval(interval);

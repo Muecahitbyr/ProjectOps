@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createTodo, deleteTodo, fetchTodoCategories, fetchTodos, updateTodo } from "../api/todos.api";
+import { createTodo, deleteTodo, fetchTodoCategories, fetchTodos, moveTodo, updateTodo } from "../api/todos.api";
 import { queryKeys } from "./queryKeys";
 import type { CreateTodoInput, UpdateTodoInput } from "../types/todo.types";
 
@@ -31,6 +31,16 @@ export function useUpdateTodo() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, input }: { id: number; input: UpdateTodoInput }) => updateTodo(id, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["todos"] });
+    },
+  });
+}
+
+export function useMoveTodo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, direction }: { id: number; direction: "up" | "down" }) => moveTodo(id, direction),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["todos"] });
     },

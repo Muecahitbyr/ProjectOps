@@ -23,6 +23,11 @@ export async function updateTodo(id: number, input: UpdateTodoInput): Promise<To
   return data;
 }
 
+export async function moveTodo(id: number, direction: "up" | "down"): Promise<Todo[]> {
+  const { data } = await apiClient.post<Todo[]>(`/api/todos/${id}/move`, { direction });
+  return data;
+}
+
 export async function deleteTodo(id: number): Promise<void> {
   await apiClient.delete(`/api/todos/${id}`);
 }

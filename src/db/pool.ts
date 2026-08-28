@@ -1,5 +1,14 @@
-import { Pool } from "pg";
+import { Pool, types } from "pg";
 import { logger } from "../core/logger";
+
+// `pg` parst DATE-Spalten (OID 1082) standardmaessig zu einem JS-Date-Objekt
+// in LOKALER Zeitzone - beim spaeteren .toISOString() (UTC) verschiebt sich
+// ein reines Datum ohne Uhrzeit dadurch je nach Server-Zeitzone um einen
+// Tag (z.B. "2026-09-01" wird zu "2026-08-31T22:00:00.000Z" in UTC+2, live
+// beim Todo-Deadline-Feld reproduziert). Da ein DATE-Wert ohnehin keine
+// Uhrzeit/Zeitzone traegt, ist der rohe String (YYYY-MM-DD) immer korrekt -
+// kein Date-Objekt-Umweg noetig.
+types.setTypeParser(1082, (value: string) => value);
 
 // Phase 66 "Enterprise Final Hardening & Production Readiness" - dieselbe
 // Fail-Fast-Konvention wie JWT_ACCESS_SECRET (config/auth.config.ts): ohne

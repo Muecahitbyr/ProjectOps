@@ -7,6 +7,12 @@ export interface Todo {
   title: string;
   description: string | null;
   done: boolean;
+  dueDate: string | null;
+  // true = haengt aktuell im separaten "Zu testen"-Bereich (siehe
+  // TodosPanel.tsx) - unabhaengig von "done", das erst beim tatsaechlichen
+  // Abhaken DORT auf true gesetzt wird. Siehe Migration 0068.
+  needsTesting: boolean;
+  position: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -15,10 +21,13 @@ export interface CreateTodoInput {
   category?: string | null | undefined;
   title: string;
   description?: string | null | undefined;
+  dueDate?: string | null | undefined;
 }
 
 export interface UpdateTodoInput {
   title?: string | undefined;
   description?: string | null | undefined;
   done?: boolean | undefined;
+  dueDate?: string | null | undefined;
+  needsTesting?: boolean | undefined;
 }
