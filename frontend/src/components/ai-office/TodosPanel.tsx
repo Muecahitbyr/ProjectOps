@@ -6,6 +6,7 @@ import CardContent from "@mui/material/CardContent";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
+import Autocomplete from "@mui/material/Autocomplete";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Checkbox from "@mui/material/Checkbox";
@@ -41,7 +42,6 @@ import { getErrorMessage } from "../../utils/getErrorMessage";
 import type { Todo } from "../../types/todo.types";
 
 const GENERAL_KEY = "__general__";
-const CATEGORY_LIST_ID = "todo-category-suggestions";
 
 // Deterministische Akzentfarbe je Kategorie (Hash des Namens) - rein
 // dekorativ, keine echte Bedeutung der Farbe selbst, nur Wiedererkennung
@@ -306,12 +306,6 @@ export function TodosPanel({ projects }: { projects: { id: string; name: string 
                 </Typography>
               </Stack>
 
-              <datalist id={CATEGORY_LIST_ID}>
-                {categoryOptions.map((option) => (
-                  <option key={option} value={option} />
-                ))}
-              </datalist>
-
               <Stack spacing={1.25} sx={{ mb: 3 }}>
                 <TextField
                   size="small"
@@ -322,13 +316,34 @@ export function TodosPanel({ projects }: { projects: { id: string; name: string 
                   fullWidth
                 />
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
-                  <TextField
-                    size="small"
-                    placeholder="Kategorie (optional)"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-                    slotProps={{ htmlInput: { list: CATEGORY_LIST_ID } }}
+                  <Autocomplete
+                    freeSolo
+                    autoHighlight
+                    options={categoryOptions}
+                    inputValue={category}
+                    onInputChange={(_, value) => setCategory(value)}
+                    onChange={(_, value) => setCategory(value ?? "")}
+                    renderOption={(props, option) => {
+                      const { key, ...optionProps } = props;
+                      return (
+                        <Box key={key} component="li" {...optionProps} sx={{ display: "flex", alignItems: "center", gap: 1.25, py: "10px !important", px: "14px !important" }}>
+                          <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: colorForCategory(option), flexShrink: 0 }} />
+                          <Typography variant="body2">{option}</Typography>
+                        </Box>
+                      );
+                    }}
+                    slotProps={{
+                      listbox: { sx: { p: 0.5 } },
+                      popper: { sx: { minWidth: 220 } },
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        size="small"
+                        placeholder="Kategorie (optional)"
+                        onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+                      />
+                    )}
                     sx={{ flex: "1 1 auto", minWidth: 0 }}
                   />
                   <DatePicker

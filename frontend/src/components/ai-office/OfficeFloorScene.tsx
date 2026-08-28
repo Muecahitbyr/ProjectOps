@@ -370,53 +370,105 @@ const OfficeKitchen = memo(function OfficeKitchen({
   );
 });
 
-// Chill Area: mehrere einzelne Betten (statt einer Couch) + Shisha +
-// kleiner Beistelltisch - damit tatsaechlich mehrere Personen gleichzeitig
-// dort liegen/schlafen koennen, statt sich einen einzigen Liegeplatz zu
-// teilen. Jedes Bett ist ein eigenes, reales Laufziel (registerBedRef).
-// Deutlich mehr Abstand zwischen den Betten als in der ersten Version
-// (waren vorher fast beruehrend nebeneinander).
-const BED_COUNT = 3;
-const OfficeChillArea = memo(function OfficeChillArea({ registerBedRef }: { registerBedRef: (index: number, el: HTMLDivElement | null) => void }) {
+// Shisha-Kopf mit aufsteigendem Rauch - eigene Komponente, da sowohl der
+// dekorative Tisch (mehrere Koepfe nebeneinander) als auch spaeter denkbare
+// Einzeldarstellungen dieselbe Silhouette brauchen. randomDelay sorgt dafuer,
+// dass mehrere Shishas nicht synchron "pulsieren".
+function ShishaHead({ randomDelay = 0 }: { randomDelay?: number }) {
   return (
-    <Box sx={{ position: "relative", width: 360, maxWidth: "100%" }}>
+    <Box sx={{ position: "relative", width: 22 }}>
+      {/* Vase + Rohr + Kopf */}
+      <Box sx={{ position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)", width: 15, height: 18, borderRadius: "40% 40% 60% 60% / 50% 50% 70% 70%", background: "linear-gradient(180deg,#c9a86a,#7fbf9f)", opacity: 0.9 }} />
+      <Box sx={{ position: "absolute", bottom: 16, left: "50%", transform: "translateX(-50%)", width: 3, height: 7, backgroundColor: "#8a8a8a" }} />
+      <Box sx={{ position: "absolute", bottom: 23, left: "50%", transform: "translateX(-50%)", width: 8, height: 5, borderRadius: 1, backgroundColor: "#3a3a3a" }} />
+      <Box
+        sx={{
+          position: "absolute",
+          bottom: 28,
+          left: "60%",
+          width: 3,
+          height: 3,
+          borderRadius: "50%",
+          backgroundColor: "rgba(230,230,230,0.6)",
+          animation: `office-shisha-smoke 2.6s ease-in infinite`,
+          animationDelay: `${randomDelay}s`,
+          "@keyframes office-shisha-smoke": { "0%": { transform: "translate(0,0) scale(1)", opacity: 0.6 }, "100%": { transform: "translate(10px,-24px) scale(2.4)", opacity: 0 } },
+        }}
+      />
+    </Box>
+  );
+}
+
+// Ein einzelner Shisha-Stuhl - eigenes, reales Laufziel (registerShishaChairRef),
+// analog zu den Betten/Leseecke-Sitzplaetzen.
+function ShishaChair({ chairRef }: { chairRef: (el: HTMLDivElement | null) => void }) {
+  return (
+    <Box ref={chairRef} sx={{ position: "relative", width: 26, height: 26, flexShrink: 0 }}>
+      <Box sx={{ position: "absolute", bottom: 8, width: "100%", height: 6, borderRadius: 1, backgroundColor: "#8a6f52" }} />
+      <Box sx={{ position: "absolute", bottom: 8, left: 0, width: 4, height: 18, backgroundColor: "#8a6f52", borderRadius: 1 }} />
+      <Box sx={{ position: "absolute", bottom: 0, left: 2, width: 2.5, height: 8, backgroundColor: "#5c4835" }} />
+      <Box sx={{ position: "absolute", bottom: 0, right: 2, width: 2.5, height: 8, backgroundColor: "#5c4835" }} />
+    </Box>
+  );
+}
+
+// Chill Area: mehrere einzelne Betten + ein Shisha-Tisch mit mehreren
+// Stuehlen und mehreren Shisha-Koepfen - damit tatsaechlich mehrere Personen
+// gleichzeitig entweder liegen/schlafen ODER am Tisch sitzen und Shisha
+// rauchen koennen, statt sich einen einzigen Platz zu teilen. Jedes Bett und
+// jeder Stuhl ist ein eigenes, reales Laufziel (registerBedRef /
+// registerShishaChairRef). Nutzerwunsch: Bereich insgesamt groesser, echter
+// Tisch mit SHISHA_CHAIR_COUNT Stuehlen und SHISHA_HEAD_COUNT Shisha-Koepfen
+// darauf.
+const BED_COUNT = 3;
+const SHISHA_CHAIR_COUNT = 5;
+const SHISHA_HEAD_COUNT = 3;
+// Kombinierter Slot-Pool fuer das Ziel "chill": Index < BED_COUNT = Bett
+// (liegen), Index >= BED_COUNT = Shisha-Stuhl (sitzen + rauchen) - siehe
+// getChillSlotEl() weiter unten in der Komponente.
+const CHILL_SLOT_COUNT = BED_COUNT + SHISHA_CHAIR_COUNT;
+const OfficeChillArea = memo(function OfficeChillArea({
+  registerBedRef,
+  registerShishaChairRef,
+}: {
+  registerBedRef: (index: number, el: HTMLDivElement | null) => void;
+  registerShishaChairRef: (index: number, el: HTMLDivElement | null) => void;
+}) {
+  return (
+    <Box sx={{ position: "relative", width: 620, maxWidth: "100%" }}>
       <Box sx={{ fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.05em", color: "#6b5c47", textTransform: "uppercase", textAlign: "center", mb: 1.5 }}>
         🛏️ Chill Area
       </Box>
-      <Box sx={{ position: "relative", height: 90, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 4 }}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "center", gap: 5 }}>
         {/* Einzelbetten - schlichter, flacher Stil (Video-Referenz): ein
             Kissen in Akzentfarbe auf dunkelgrauer Matratze. */}
-        {Array.from({ length: BED_COUNT }, (_, i) => (
-          <Box key={i} ref={(el: HTMLDivElement | null) => registerBedRef(i, el)} sx={{ position: "relative", width: 46, height: 22 }}>
-            <Box sx={{ position: "absolute", bottom: 0, width: "100%", height: 16, borderRadius: "6px", backgroundColor: "#4a4f57" }} />
-            <Box sx={{ position: "absolute", bottom: 3, left: 3, width: 14, height: 10, borderRadius: "3px", backgroundColor: "#e08a4f" }} />
-            <Box sx={{ position: "absolute", bottom: -4, left: 2, width: 3, height: 5, backgroundColor: "#33373d", borderRadius: 1 }} />
-            <Box sx={{ position: "absolute", bottom: -4, right: 2, width: 3, height: 5, backgroundColor: "#33373d", borderRadius: 1 }} />
-          </Box>
-        ))}
+        <Box sx={{ position: "relative", height: 90, display: "flex", alignItems: "flex-end", gap: 4 }}>
+          {Array.from({ length: BED_COUNT }, (_, i) => (
+            <Box key={i} ref={(el: HTMLDivElement | null) => registerBedRef(i, el)} sx={{ position: "relative", width: 46, height: 22 }}>
+              <Box sx={{ position: "absolute", bottom: 0, width: "100%", height: 16, borderRadius: "6px", backgroundColor: "#4a4f57" }} />
+              <Box sx={{ position: "absolute", bottom: 3, left: 3, width: 14, height: 10, borderRadius: "3px", backgroundColor: "#e08a4f" }} />
+              <Box sx={{ position: "absolute", bottom: -4, left: 2, width: 3, height: 5, backgroundColor: "#33373d", borderRadius: 1 }} />
+              <Box sx={{ position: "absolute", bottom: -4, right: 2, width: 3, height: 5, backgroundColor: "#33373d", borderRadius: 1 }} />
+            </Box>
+          ))}
+        </Box>
 
-        {/* Shisha auf kleinem Tisch */}
-        <Box sx={{ position: "relative", width: 32 }}>
-          <Box sx={{ width: 32, height: 5, borderRadius: 1, backgroundColor: "#c8a36b" }} />
-          <Box sx={{ position: "absolute", bottom: -8, left: 3, width: 2.5, height: 8, backgroundColor: "#8a6c3f" }} />
-          <Box sx={{ position: "absolute", bottom: -8, right: 3, width: 2.5, height: 8, backgroundColor: "#8a6c3f" }} />
-          {/* Shisha-Silhouette: Vase + Rohr + Kopf */}
-          <Box sx={{ position: "absolute", bottom: 5, left: "50%", transform: "translateX(-50%)", width: 11, height: 14, borderRadius: "40% 40% 60% 60% / 50% 50% 70% 70%", background: "linear-gradient(180deg,#c9a86a,#7fbf9f)", opacity: 0.9 }} />
-          <Box sx={{ position: "absolute", bottom: 17, left: "50%", transform: "translateX(-50%)", width: 2.5, height: 6, backgroundColor: "#8a8a8a" }} />
-          <Box sx={{ position: "absolute", bottom: 23, left: "50%", transform: "translateX(-50%)", width: 6, height: 4, borderRadius: 1, backgroundColor: "#3a3a3a" }} />
-          <Box
-            sx={{
-              position: "absolute",
-              bottom: 27,
-              left: "60%",
-              width: 2.5,
-              height: 2.5,
-              borderRadius: "50%",
-              backgroundColor: "rgba(230,230,230,0.6)",
-              animation: "office-shisha-smoke 2.6s ease-in infinite",
-              "@keyframes office-shisha-smoke": { "0%": { transform: "translate(0,0) scale(1)", opacity: 0.6 }, "100%": { transform: "translate(10px,-20px) scale(2.4)", opacity: 0 } },
-            }}
-          />
+        {/* Shisha-Tisch mit SHISHA_HEAD_COUNT Koepfen auf der Platte und
+            SHISHA_CHAIR_COUNT echten Sitzplaetzen davor. */}
+        <Box sx={{ position: "relative", width: 260, height: 92 }}>
+          <Box sx={{ position: "absolute", bottom: 34, left: "50%", transform: "translateX(-50%)", width: 236, height: 8, borderRadius: 1, backgroundColor: "#c8a36b" }} />
+          <Box sx={{ position: "absolute", bottom: 0, left: 22, width: 3, height: 34, backgroundColor: "#8a6c3f" }} />
+          <Box sx={{ position: "absolute", bottom: 0, right: 22, width: 3, height: 34, backgroundColor: "#8a6c3f" }} />
+          <Box sx={{ position: "absolute", bottom: 42, left: "50%", transform: "translateX(-50%)", display: "flex", gap: "34px" }}>
+            {Array.from({ length: SHISHA_HEAD_COUNT }, (_, i) => (
+              <ShishaHead key={i} randomDelay={i * 0.7} />
+            ))}
+          </Box>
+          <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, display: "flex", justifyContent: "space-between", px: "4px" }}>
+            {Array.from({ length: SHISHA_CHAIR_COUNT }, (_, i) => (
+              <ShishaChair key={i} chairRef={(el) => registerShishaChairRef(i, el)} />
+            ))}
+          </Box>
         </Box>
       </Box>
     </Box>
@@ -548,6 +600,73 @@ function OfficeLyingCharacter({ color }: { color: string }) {
         <path d="M13.5 18 q2.5 -2 5 0" stroke="#3b2a1a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
         <path d="M7.5 22.5 q4.5 1.8 9 0" stroke="#8a5a3b" strokeWidth="1.4" fill="none" strokeLinecap="round" />
       </Box>
+    </Box>
+  );
+}
+
+// Sitzende Figur fuer den Shisha-Tisch (analog zu OfficeSittingCharacter,
+// aber mit Schlauch statt Buch): eine Hand haelt den Schlauch, der sich
+// rhythmisch zum Mund hin und wieder weg bewegt ("an Schlauch ziehen"), dabei
+// stoesst die Figur passend getaktet einen Rauch-Puff aus. randomDelay
+// versetzt mehrere gleichzeitig sitzende Personen, damit nicht alle
+// synchron ziehen/ausatmen.
+function OfficeShishaCharacter({ color, randomDelay = 0 }: { color: string; randomDelay?: number }) {
+  const skin = "#e8b48a";
+  const hair = "#3b2a1a";
+  return (
+    <Box
+      sx={{
+        position: "relative",
+        width: 32,
+        height: 40,
+        animation: "office-sitting-breathe 3.2s ease-in-out infinite",
+      }}
+    >
+      <Box component="svg" viewBox="0 0 32 40" sx={{ width: 32, height: 40, display: "block", overflow: "visible" }}>
+        <style>{`
+          @keyframes office-shisha-pull { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-14deg); } }
+        `}</style>
+        {/* Angewinkelte Sitzbeine */}
+        <rect x="5" y="30" width="9" height="8" rx="3" fill="#2b333f" />
+        <rect x="18" y="30" width="9" height="8" rx="3" fill="#37414f" />
+        {/* Koerper */}
+        <rect x="6" y="14" width="20" height="18" rx="8" fill={color} />
+        {/* Schlauch von der Hand zum Mund, pendelt beim "Ziehen" */}
+        <path
+          d="M24 25 Q30 20 25 10"
+          stroke="#4a4a4a"
+          strokeWidth="2"
+          fill="none"
+          strokeLinecap="round"
+          style={{ transformOrigin: "24px 25px", animation: "office-shisha-pull 2.8s ease-in-out infinite", animationDelay: `${randomDelay}s` }}
+        />
+        <circle cx="24" cy="25" r="2.6" fill={color} />
+        {/* Kopf */}
+        <circle cx="16" cy="9" r="9" fill={skin} />
+        <ellipse cx="16" cy="4.5" rx="9" ry="5" fill={hair} />
+        <path d="M11 11 q2 1.4 4 0" stroke="#3b2a1a" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+        <path d="M17 11 q2 1.4 4 0" stroke="#3b2a1a" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+      </Box>
+      {/* Ausgeatmeter Rauch-Puff, getaktet auf denselben Zyklus wie der
+          Schlauch-Zug (kommt sichtbar aus Mundhoehe). */}
+      <Box
+        sx={{
+          position: "absolute",
+          top: 6,
+          left: 20,
+          width: 4,
+          height: 4,
+          borderRadius: "50%",
+          backgroundColor: "rgba(220,220,220,0.75)",
+          animation: "office-shisha-exhale 2.8s ease-out infinite",
+          animationDelay: `${randomDelay}s`,
+          "@keyframes office-shisha-exhale": {
+            "0%,45%": { opacity: 0, transform: "translate(0,0) scale(0.6)" },
+            "60%": { opacity: 0.85, transform: "translate(4px,-6px) scale(1.3)" },
+            "100%": { opacity: 0, transform: "translate(16px,-22px) scale(2.8)" },
+          },
+        }}
+      />
     </Box>
   );
 }
@@ -733,6 +852,7 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
   // Ein Ref pro Bett/Sitzplatz (statt einem einzelnen Ziel), damit mehrere
   // Personen gleichzeitig liegen bzw. nebeneinander lesend sitzen koennen.
   const bedElsRef = useRef(new Map<number, HTMLDivElement>());
+  const shishaChairElsRef = useRef(new Map<number, HTMLDivElement>());
   const seatElsRef = useRef(new Map<number, HTMLDivElement>());
   // Mehrere gleichzeitige Laeufer statt einem einzelnen - "sie muessen nicht
   // standardmaessig am Platz sein", jede real IDLE Person kann unabhaengig
@@ -760,6 +880,10 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
   const registerBedRef = useCallback((index: number, el: HTMLDivElement | null) => {
     if (el) bedElsRef.current.set(index, el);
     else bedElsRef.current.delete(index);
+  }, []);
+  const registerShishaChairRef = useCallback((index: number, el: HTMLDivElement | null) => {
+    if (el) shishaChairElsRef.current.set(index, el);
+    else shishaChairElsRef.current.delete(index);
   }, []);
   const registerSeatRef = useCallback((index: number, el: HTMLDivElement | null) => {
     if (el) seatElsRef.current.set(index, el);
@@ -821,20 +945,37 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
       let to: { x: number; y: number };
       let slotIndex: number | undefined;
       if (destination === "chill" || destination === "books") {
-        // Freien Platz suchen (Bett bzw. Sitzplatz) - keiner teilt sich
-        // einen Platz mit jemand anderem. Real gemessen, wird schon beim
-        // Losgehen reserviert (slotIndex bleibt fuer die gesamte Pause
-        // gesetzt, damit niemand sonst denselben Platz waehlt).
-        const slotEls = destination === "chill" ? bedElsRef.current : seatElsRef.current;
-        const slotCount = destination === "chill" ? BED_COUNT : SEAT_COUNT;
+        // Freien Platz suchen (Bett/Shisha-Stuhl bzw. Leseecke-Sitzplatz) -
+        // keiner teilt sich einen Platz mit jemand anderem. Real gemessen,
+        // wird schon beim Losgehen reserviert (slotIndex bleibt fuer die
+        // gesamte Pause gesetzt, damit niemand sonst denselben Platz
+        // waehlt). Bei "chill" liegt der Slot-Pool ueber Betten UND
+        // Shisha-Stuehlen (globaler Index < BED_COUNT = Bett, sonst
+        // Shisha-Stuhl) statt nur Betten.
+        const getSlotEl =
+          destination === "chill"
+            ? (i: number) => (i < BED_COUNT ? bedElsRef.current.get(i) : shishaChairElsRef.current.get(i - BED_COUNT))
+            : (i: number) => seatElsRef.current.get(i);
+        const slotCount = destination === "chill" ? CHILL_SLOT_COUNT : SEAT_COUNT;
         const occupied = new Set(
           Array.from(current.values())
             .filter((w) => w.destination === destination)
             .map((w) => w.slotIndex),
         );
-        const freeIndex = Array.from({ length: slotCount }, (_, i) => i).find((i) => !occupied.has(i) && slotEls.has(i));
+        // Kandidaten-Reihenfolge zufaellig mischen statt aufsteigend zu
+        // durchsuchen: bei "chill" liegen die Betten (0-2) vor den
+        // Shisha-Stuehlen (3-7) im Index - ungemischt wuerde .find() fast
+        // immer zuerst ein freies Bett finden und die Stuehle dadurch
+        // praktisch nie benutzt werden (Nutzer wollte den Tisch aktiv
+        // genutzt sehen, nicht nur als seltenen Overflow-Platz).
+        const candidateOrder = Array.from({ length: slotCount }, (_, i) => i);
+        for (let i = candidateOrder.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [candidateOrder[i], candidateOrder[j]] = [candidateOrder[j]!, candidateOrder[i]!];
+        }
+        const freeIndex = candidateOrder.find((i) => !occupied.has(i) && getSlotEl(i));
         if (freeIndex === undefined) return;
-        const slotRect = slotEls.get(freeIndex)!.getBoundingClientRect();
+        const slotRect = getSlotEl(freeIndex)!.getBoundingClientRect();
         to = { x: slotRect.left + slotRect.width / 2 - containerRect.left, y: slotRect.bottom - containerRect.top - 14 };
         slotIndex = freeIndex;
       } else {
@@ -854,8 +995,13 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
         );
         const freeIndex = Array.from({ length: slotCount }, (_, i) => i).find((i) => !occupied.has(i));
         if (freeIndex === undefined) return;
+        // Nutzer-Feedback: Figuren standen mit "-14" (wie bei Bett/Sitzplatz)
+        // optisch IN der Kaffeemaschine/im Kuehlschrank, weil deren
+        // Bounding-Box-Boden weiter oben liegt als bei Bett/Couch. Hier
+        // stattdessen ein positiver Offset UNTER die Boxen, damit die Person
+        // sichtbar davor auf dem Kuechenboden steht statt hineinzuragen.
         const destRect = destinationEl.getBoundingClientRect();
-        to = { x: destRect.left + destRect.width / 2 - containerRect.left + (KITCHEN_SLOT_OFFSETS_X[freeIndex] ?? 0), y: destRect.bottom - containerRect.top - 14 };
+        to = { x: destRect.left + destRect.width / 2 - containerRect.left + (KITCHEN_SLOT_OFFSETS_X[freeIndex] ?? 0), y: destRect.bottom - containerRect.top + 10 };
         slotIndex = freeIndex;
       }
 
@@ -1045,7 +1191,7 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
 
         <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 5, mt: 4 }}>
           <OfficeKitchen coffeeRef={registerCoffeeRef} fridgeRef={registerFridgeRef} fridgeOpen={fridgeOpen} />
-          <OfficeChillArea registerBedRef={registerBedRef} />
+          <OfficeChillArea registerBedRef={registerBedRef} registerShishaChairRef={registerShishaChairRef} />
           <OfficeReadingCorner registerSeatRef={registerSeatRef} />
         </Box>
       </Box>
@@ -1061,6 +1207,18 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
           Stehen/Laufen/Sitzen. */}
       {activeWalkers.map((walker) => {
         if (walker.atDestination && walker.destination === "chill") {
+          // slotIndex >= BED_COUNT = einer der Shisha-Stuehle (sitzen +
+          // rauchen statt liegen) - eigene Pose/eigener Anker, analog zur
+          // Leseecke ("books") statt der Liege-Transform der Betten.
+          const isShishaChair = (walker.slotIndex ?? 0) >= BED_COUNT;
+          if (isShishaChair) {
+            return (
+              <Box key={walker.agentId} sx={{ position: "absolute", left: walker.pos.x, top: walker.pos.y, transform: "translate(-50%, -34px)", transition: `left ${walker.durationMs}ms ease-in-out, top ${walker.durationMs}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
+                <WalkerThoughtBubble text={DESTINATION_TEXT.chill} />
+                <OfficeShishaCharacter color={walker.color} randomDelay={((walker.slotIndex ?? 0) - BED_COUNT) * 0.5} />
+              </Box>
+            );
+          }
           return (
             <Box key={walker.agentId} sx={{ position: "absolute", left: walker.pos.x, top: walker.pos.y, transform: "translate(-52%, -30px)", transition: `left ${walker.durationMs}ms ease-in-out, top ${walker.durationMs}ms ease-in-out`, zIndex: 5, pointerEvents: "none" }}>
               <WalkerThoughtBubble text={DESTINATION_TEXT.chill} />
