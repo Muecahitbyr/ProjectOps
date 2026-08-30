@@ -162,6 +162,12 @@ export const projects: ProjectConfig[] = [
       // einen reinen Erreichbarkeits-/Content-Type-Nachweis des CDN.
       { id: "gtcc-flagcdn", type: "http", target: "https://flagcdn.com/w320/de.png", intervalMinutes: 5, enabled: true, expectedContentType: "image/png" },
       { id: "gtcc-cartodb", type: "http", target: "https://a.basemaps.cartocdn.com/dark_nolabels/0/0/0.png", intervalMinutes: 5, enabled: true },
+      // iTunes Search API - Song-Pool fuer den GuessSong-Modus (bereits vor
+      // der neuen Kategorien-Erweiterung vorhanden, war aber bisher kein
+      // eigener Check; per Audit der GTCC-Session als Luecke identifiziert).
+      // Feste, immer gueltige Beispiel-Query genuegt fuer einen reinen
+      // Erreichbarkeits-/Content-Type-Nachweis.
+      { id: "gtcc-itunes", type: "http", target: "https://itunes.apple.com/search?term=a&media=music&limit=1", intervalMinutes: 5, enabled: true, expectedContentType: "text/javascript" },
       // GuessTheCapitalCity hat laut Discovery Report keinen eigenen Server -
       // dieser Platzhalter-Check hatte nie ein reales Ziel und wird
       // deaktiviert statt mit einer erfundenen URL befuellt.
