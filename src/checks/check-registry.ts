@@ -11,6 +11,7 @@ import { firebaseStorageChecker } from "./firebase-storage.check";
 import { stripeChecker } from "./stripe.check";
 import { stripeStatusChecker } from "./stripe-status.check";
 import { countriesNowChecker } from "./countriesnow.check";
+import { appStoreChecker } from "./app-store.check";
 
 // Weitere Check-Typen werden hier einfach als zusaetzlicher Eintrag registriert.
 const checkers = new Map<CheckType, Checker>([
@@ -25,6 +26,7 @@ const checkers = new Map<CheckType, Checker>([
   [stripeChecker.type, stripeChecker],
   [stripeStatusChecker.type, stripeStatusChecker],
   [countriesNowChecker.type, countriesNowChecker],
+  [appStoreChecker.type, appStoreChecker],
 ]);
 
 export function getChecker(type: CheckType): Checker | undefined {

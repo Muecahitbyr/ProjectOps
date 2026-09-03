@@ -21,6 +21,7 @@ const SUGGESTION_BY_CHECK_TYPE: Record<CheckType, AutomationActionType> = {
   // http/dns/ssl.
   "stripe-status": "RUN_HEALTH_CHECK",
   countriesnow: "RUN_HEALTH_CHECK",
+  "app-store": "RUN_HEALTH_CHECK",
 };
 
 export function suggestAutomationAction(checkType: CheckType): AutomationActionType {

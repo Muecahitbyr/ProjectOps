@@ -168,6 +168,12 @@ export const projects: ProjectConfig[] = [
       // Feste, immer gueltige Beispiel-Query genuegt fuer einen reinen
       // Erreichbarkeits-/Content-Type-Nachweis.
       { id: "gtcc-itunes", type: "http", target: "https://itunes.apple.com/search?term=a&media=music&limit=1", intervalMinutes: 5, enabled: true, expectedContentType: "text/javascript" },
+      // App-Store-Praesenz der eigenen App (mittlerweile umbenannt zu "Tano",
+      // Bundle-ID bayar-solutions.tano). "gtcc-itunes" oben deckt das nicht ab
+      // - das ist ein reiner Erreichbarkeits-Check der Search API fuer den
+      // Song-Pool, keine Abfrage der eigenen App. Body-validiert (resultCount),
+      // nicht nur HTTP 200 - siehe app-store.check.ts.
+      { id: "gtcc-appstore", type: "app-store", target: "bayar-solutions.tano", intervalMinutes: 5, enabled: true },
       // GuessTheCapitalCity hat laut Discovery Report keinen eigenen Server -
       // dieser Platzhalter-Check hatte nie ein reales Ziel und wird
       // deaktiviert statt mit einer erfundenen URL befuellt.

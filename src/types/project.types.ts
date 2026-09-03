@@ -16,6 +16,10 @@ export type CheckType =
   // Daten - siehe stripe-status.check.ts/countriesnow.check.ts).
   | "stripe-status"
   | "countriesnow"
+  // App-Store-Praesenz: iTunes Lookup API ueber bundleId. HTTP 200 allein
+  // beweist nichts - ein aus dem App Store entferntes/nie freigegebenes Listing
+  // antwortet trotzdem mit 200 und resultCount: 0 (siehe app-store.check.ts).
+  | "app-store"
   | "api-health"
   | "custom";
 
