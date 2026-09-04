@@ -17,7 +17,7 @@ import type { AgentStatus } from "../components/ai-office/officeConfig";
 import { getErrorMessage } from "../utils/getErrorMessage";
 
 // Kurzform des echten Projektnamens fuer die Schreibtisch-Beschriftung
-// (Nutzerwunsch: "DriveConnect" -> "DC", "GuessTheCapitalCity" -> "GTCC") -
+// (Nutzerwunsch: "DriveConnect" -> "DC", frueher "GuessTheCapitalCity" -> "GTCC") -
 // rein deterministisch aus dem echten Projektnamen abgeleitet, keine fest
 // verdrahtete Liste erfundener Kuerzel: PascalCase-Namen liefern ihre
 // Grossbuchstaben-Folge ("DriveConnect" -> "DC"), sonst die Anfangsbuchstaben

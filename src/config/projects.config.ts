@@ -134,9 +134,14 @@ export const projects: ProjectConfig[] = [
   },
   {
     id: "guess-the-capital-city",
-    name: "GuessTheCapitalCity",
+    name: "Tano",
     type: "mobile-app",
-    description: "Native iOS Quiz-App mit Firebase (guessthecapitalcity), countriesnow.space, flagcdn.com und CartoDB",
+    // Umbenennung 2026-09-04: die App hiess frueher GuessTheCapitalCity,
+    // heisst jetzt Tano (Bundle-ID bayar-solutions.tano). Interne id/
+    // Firebase-Projekt-id (guessthecapitalcity) sowie die gtcc-*-Check-
+    // Praefixe bleiben unveraendert, da sie echte externe Referenzen
+    // (Firebase-Projekt, historische Check-IDs) sind, keine Anzeige-Labels.
+    description: "Native iOS Quiz-App (frueher GuessTheCapitalCity) mit Firebase (guessthecapitalcity), countriesnow.space, flagcdn.com und CartoDB",
     techProfile: {
       platform: "Native iOS Quiz-App",
       firestoreCollections: ["/lobbies/{lobbyCode}"],
