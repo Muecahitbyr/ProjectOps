@@ -215,4 +215,6 @@ export const queryKeys = {
   // Todo-Panel unter KI-Buero.
   todos: (category?: string) => ["todos", category ?? "all"] as const,
   todoCategories: ["todos", "categories"] as const,
+  // Akquise-Pipeline, eigene Sidebar-Seite.
+  acquisitionCompanies: ["acquisition-companies"] as const,
 };

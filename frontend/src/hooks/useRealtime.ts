@@ -1028,6 +1028,11 @@ export function useRealtime(): UseRealtimeResult {
           void queryClient.invalidateQueries({ queryKey: ["todos"] });
           break;
         }
+
+        case "ACQUISITION_COMPANY_UPDATED": {
+          void queryClient.invalidateQueries({ queryKey: ["acquisition-companies"] });
+          break;
+        }
       }
     };
 

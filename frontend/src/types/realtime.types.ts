@@ -1,5 +1,6 @@
 import type { CheckStatus, HealthStatus } from "./common.types";
 import type { Todo } from "./todo.types";
+import type { AcquisitionCompany } from "./acquisition.types";
 import type { Incident } from "./incident.types";
 import type { ProjectHealthSummary } from "./dashboard.types";
 import type { AlertEvent, AlertRule } from "./alert.types";
@@ -168,7 +169,8 @@ export type RealtimeEventType =
   | "PROBLEM_UPDATED"
   // Phase 38 "Enterprise Resilience Alerting & Notification Intelligence".
   | "RESILIENCE_STATUS_CHANGED"
-  | "TODO_UPDATED";
+  | "TODO_UPDATED"
+  | "ACQUISITION_COMPANY_UPDATED";
 
 export const REALTIME_EVENT_TYPES: readonly RealtimeEventType[] = [
   "CHECK_UPDATED",
@@ -283,6 +285,7 @@ export const REALTIME_EVENT_TYPES: readonly RealtimeEventType[] = [
   "PROBLEM_UPDATED",
   "RESILIENCE_STATUS_CHANGED",
   "TODO_UPDATED",
+  "ACQUISITION_COMPANY_UPDATED",
 ];
 
 export interface RealtimeCheckResult {
@@ -607,7 +610,8 @@ export type RealtimeEvent =
         newStatus: ResilienceStatus;
       };
     }
-  | { type: "TODO_UPDATED"; timestamp: string; payload: Todo };
+  | { type: "TODO_UPDATED"; timestamp: string; payload: Todo }
+  | { type: "ACQUISITION_COMPANY_UPDATED"; timestamp: string; payload: AcquisitionCompany };
 
 export interface SloEvaluationEventPayload {
   slo: Slo;

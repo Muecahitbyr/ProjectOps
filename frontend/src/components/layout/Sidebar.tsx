@@ -10,6 +10,7 @@ import Typography from "@mui/material/Typography";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import ChecklistOutlinedIcon from "@mui/icons-material/ChecklistOutlined";
+import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
 import { AccountMenu } from "./AccountMenu";
 
 export const SIDEBAR_WIDTH = 232;
@@ -21,15 +22,17 @@ interface NavItem {
 }
 
 // Auf Nutzerwunsch radikal reduziert: nur noch das KI-Buero + Todos +
-// Settings. Alle uebrigen, in frueheren Phasen gebauten Nav-Eintraege
-// (Dashboard, Projects, Incidents, Analytics, SLA Reports, Platform-Admin-
-// Bereiche, ...) wurden entfernt - der Code der jeweiligen Seiten bleibt
-// erhalten (siehe Git-Historie), ist aber bewusst nicht mehr verlinkt/
-// geroutet (siehe App.tsx). Todos ist ein eigener Nav-Eintrag statt eines
-// Reiters innerhalb von KI-Buero (Nutzerwunsch).
+// Akquise + Settings. Alle uebrigen, in frueheren Phasen gebauten Nav-
+// Eintraege (Dashboard, Projects, Incidents, Analytics, SLA Reports,
+// Platform-Admin-Bereiche, ...) wurden entfernt - der Code der jeweiligen
+// Seiten bleibt erhalten (siehe Git-Historie), ist aber bewusst nicht mehr
+// verlinkt/geroutet (siehe App.tsx). Todos und Akquise sind jeweils eigene
+// Nav-Eintraege statt Reiter innerhalb von KI-Buero (Nutzerwunsch, siehe
+// dortiger Kommentar in AiOperationsOffice.tsx).
 const navItems: NavItem[] = [
   { label: "KI-Büro", to: "/ai-office", icon: <AutoAwesomeOutlinedIcon fontSize="small" /> },
   { label: "Todos", to: "/todos", icon: <ChecklistOutlinedIcon fontSize="small" /> },
+  { label: "Akquise", to: "/acquisition", icon: <BusinessCenterOutlinedIcon fontSize="small" /> },
 ];
 
 interface SidebarProps {
