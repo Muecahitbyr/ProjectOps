@@ -79,7 +79,67 @@ export async function createAcquisitionCompany(input: CreateAcquisitionCompanyIn
   return mapRow(rows[0]!);
 }
 
-export async function updateAcquisitionCompany(id: number, input: UpdateAcquisitionCompanyInput): Promise<AcquisitionCompany | undefined> {
+// Feste Reihenfolge der Pipeline-Felder (siehe AcquisitionStage-Kommentar).
+// Wird ein Feld auf seinen "nicht erledigt"-Wert zurueckgesetzt (false bei
+// den Checkbox-Schritten, false/null bei den beiden Ja/Nein-Entscheidungen),
+// werden automatisch ALLE nachfolgenden Felder ebenfalls zurueckgesetzt -
+// Nutzerwunsch: ein zurueckgenommener Haken soll bereits erledigte spaetere
+// Schritte wieder verschwinden lassen, statt sie als stillen, unsichtbar
+// gewordenen Datenmuell stehen zu lassen.
+const PIPELINE_FIELD_ORDER = [
+  "websiteBuilt",
+  "called",
+  "wantsWebsite",
+  "websiteSent",
+  "confirmedAfterViewing",
+  "planningDone",
+  "implementationDone",
+  "live",
+] as const satisfies readonly (keyof UpdateAcquisitionCompanyInput)[];
+
+type PipelineField = (typeof PIPELINE_FIELD_ORDER)[number];
+
+const DECISION_FIELDS = new Set<PipelineField>(["wantsWebsite", "confirmedAfterViewing"]);
+
+function isResetValue(field: PipelineField, value: boolean | null): boolean {
+  return DECISION_FIELDS.has(field) ? value !== true : value === false;
+}
+
+function resetDefault(field: PipelineField): boolean | null {
+  return DECISION_FIELDS.has(field) ? null : false;
+}
+
+// Ergaenzt `input` um die kaskadierten Reset-Werte nachfolgender Felder,
+// ohne bereits im Aufruf explizit gesetzte Felder zu ueberschreiben.
+function withCascadeReset(input: UpdateAcquisitionCompanyInput): UpdateAcquisitionCompanyInput {
+  let earliestResetIndex: number | undefined;
+  for (let i = 0; i < PIPELINE_FIELD_ORDER.length; i++) {
+    const field = PIPELINE_FIELD_ORDER[i]!;
+    const value = input[field];
+    if (value !== undefined && isResetValue(field, value)) {
+      earliestResetIndex = earliestResetIndex === undefined ? i : Math.min(earliestResetIndex, i);
+    }
+  }
+  if (earliestResetIndex === undefined) {
+    return input;
+  }
+
+  // Cast ist sicher: resetDefault() liefert nur `false` fuer die reinen
+  // Boolean-Felder und `null` ausschliesslich fuer die beiden nullable
+  // Entscheidungsfelder (DECISION_FIELDS) - TS kann das generisch ueber die
+  // Feld-Union hinweg nur nicht selbst herleiten.
+  const effective = { ...input } as Record<PipelineField, boolean | null | undefined>;
+  for (let i = earliestResetIndex + 1; i < PIPELINE_FIELD_ORDER.length; i++) {
+    const field = PIPELINE_FIELD_ORDER[i]!;
+    if (effective[field] === undefined) {
+      effective[field] = resetDefault(field);
+    }
+  }
+  return effective as UpdateAcquisitionCompanyInput;
+}
+
+export async function updateAcquisitionCompany(id: number, rawInput: UpdateAcquisitionCompanyInput): Promise<AcquisitionCompany | undefined> {
+  const input = withCascadeReset(rawInput);
   const sets: string[] = [];
   const values: unknown[] = [];
 

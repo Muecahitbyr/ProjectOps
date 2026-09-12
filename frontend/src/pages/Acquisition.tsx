@@ -269,7 +269,17 @@ export function Acquisition() {
                   <OutcomeListItem
                     key={company.id}
                     company={company}
-                    onUndo={() => updateCompany.mutate({ id: company.id, input: { wantsWebsite: null } })}
+                    onUndo={() =>
+                      updateCompany.mutate({
+                        id: company.id,
+                        // NO_WEBSITE kann von zwei verschiedenen Ja/Nein-Entscheidungen
+                        // kommen (siehe AcquisitionStage) - die richtige zuruecksetzen,
+                        // sonst wuerden bei einem "Nein" nach Webseiten-Ansicht faelschlich
+                        // auch schon erledigte fruehere Schritte (Webseite schicken) mit
+                        // zurueckgesetzt.
+                        input: company.wantsWebsite === false ? { wantsWebsite: null } : { confirmedAfterViewing: null },
+                      })
+                    }
                     onDelete={() => deleteCompany.mutate(company.id)}
                   />
                 ))}
