@@ -49,6 +49,8 @@ const updateSchema = z
     websiteBuilt: z.boolean().optional(),
     called: z.boolean().optional(),
     wantsWebsite: z.boolean().nullable().optional(),
+    websiteSent: z.boolean().optional(),
+    confirmedAfterViewing: z.boolean().nullable().optional(),
     planningDone: z.boolean().optional(),
     implementationDone: z.boolean().optional(),
     live: z.boolean().optional(),

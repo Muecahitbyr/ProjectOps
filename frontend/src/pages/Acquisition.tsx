@@ -75,7 +75,7 @@ function ActiveCompanyCard({
           {company.called && company.wantsWebsite === null && (
             <Box sx={{ mt: 1 }}>
               <Typography variant="body2" sx={{ mb: 1 }}>
-                Möchte eine Webseite?
+                Interesse an einer Webseite?
               </Typography>
               <Stack direction="row" spacing={1}>
                 <Button size="small" variant="contained" color="success" onClick={() => onUpdate({ wantsWebsite: true })}>
@@ -90,8 +90,31 @@ function ActiveCompanyCard({
 
           {company.wantsWebsite === true && (
             <FormControlLabel
+              control={<Checkbox checked={company.websiteSent} onChange={(e) => onUpdate({ websiteSent: e.target.checked })} />}
+              label="3. Webseite schicken"
+            />
+          )}
+
+          {company.websiteSent && company.confirmedAfterViewing === null && (
+            <Box sx={{ mt: 1 }}>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Webseite nach Ansicht gewünscht?
+              </Typography>
+              <Stack direction="row" spacing={1}>
+                <Button size="small" variant="contained" color="success" onClick={() => onUpdate({ confirmedAfterViewing: true })}>
+                  Ja
+                </Button>
+                <Button size="small" variant="outlined" color="error" onClick={() => onUpdate({ confirmedAfterViewing: false })}>
+                  Nein
+                </Button>
+              </Stack>
+            </Box>
+          )}
+
+          {company.confirmedAfterViewing === true && (
+            <FormControlLabel
               control={<Checkbox checked={company.planningDone} onChange={(e) => onUpdate({ planningDone: e.target.checked })} />}
-              label="3. Planung"
+              label="4. Planung"
             />
           )}
 
@@ -100,14 +123,14 @@ function ActiveCompanyCard({
               control={
                 <Checkbox checked={company.implementationDone} onChange={(e) => onUpdate({ implementationDone: e.target.checked })} />
               }
-              label="4. Umsetzung"
+              label="5. Umsetzung"
             />
           )}
 
           {company.implementationDone && (
             <FormControlLabel
               control={<Checkbox checked={company.live} onChange={(e) => onUpdate({ live: e.target.checked })} />}
-              label="5. Live/Fertig"
+              label="6. Live/Fertig"
             />
           )}
 
