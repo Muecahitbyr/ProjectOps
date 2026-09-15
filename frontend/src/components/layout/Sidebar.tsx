@@ -11,6 +11,7 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import ChecklistOutlinedIcon from "@mui/icons-material/ChecklistOutlined";
 import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
+import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
 import { AccountMenu } from "./AccountMenu";
 
 export const SIDEBAR_WIDTH = 232;
@@ -33,6 +34,7 @@ const navItems: NavItem[] = [
   { label: "KI-Büro", to: "/ai-office", icon: <AutoAwesomeOutlinedIcon fontSize="small" /> },
   { label: "Todos", to: "/todos", icon: <ChecklistOutlinedIcon fontSize="small" /> },
   { label: "Akquise", to: "/acquisition", icon: <BusinessCenterOutlinedIcon fontSize="small" /> },
+  { label: "Nisan", to: "/nisan", icon: <FavoriteBorderOutlinedIcon fontSize="small" /> },
 ];
 
 interface SidebarProps {

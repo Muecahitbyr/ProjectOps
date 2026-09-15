@@ -1033,6 +1033,11 @@ export function useRealtime(): UseRealtimeResult {
           void queryClient.invalidateQueries({ queryKey: ["acquisition-companies"] });
           break;
         }
+
+        case "NISAN_GUEST_UPDATED": {
+          void queryClient.invalidateQueries({ queryKey: ["nisan-guests"] });
+          break;
+        }
       }
     };
 

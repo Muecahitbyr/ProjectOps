@@ -1,6 +1,7 @@
 import type { CheckStatus, HealthStatus } from "./common.types";
 import type { Todo } from "./todo.types";
 import type { AcquisitionCompany } from "./acquisition.types";
+import type { NisanGuest } from "./nisan.types";
 import type { Incident } from "./incident.types";
 import type { ProjectHealthSummary } from "./dashboard.types";
 import type { AlertEvent, AlertRule } from "./alert.types";
@@ -170,7 +171,8 @@ export type RealtimeEventType =
   // Phase 38 "Enterprise Resilience Alerting & Notification Intelligence".
   | "RESILIENCE_STATUS_CHANGED"
   | "TODO_UPDATED"
-  | "ACQUISITION_COMPANY_UPDATED";
+  | "ACQUISITION_COMPANY_UPDATED"
+  | "NISAN_GUEST_UPDATED";
 
 export const REALTIME_EVENT_TYPES: readonly RealtimeEventType[] = [
   "CHECK_UPDATED",
@@ -286,6 +288,7 @@ export const REALTIME_EVENT_TYPES: readonly RealtimeEventType[] = [
   "RESILIENCE_STATUS_CHANGED",
   "TODO_UPDATED",
   "ACQUISITION_COMPANY_UPDATED",
+  "NISAN_GUEST_UPDATED",
 ];
 
 export interface RealtimeCheckResult {
@@ -611,7 +614,8 @@ export type RealtimeEvent =
       };
     }
   | { type: "TODO_UPDATED"; timestamp: string; payload: Todo }
-  | { type: "ACQUISITION_COMPANY_UPDATED"; timestamp: string; payload: AcquisitionCompany };
+  | { type: "ACQUISITION_COMPANY_UPDATED"; timestamp: string; payload: AcquisitionCompany }
+  | { type: "NISAN_GUEST_UPDATED"; timestamp: string; payload: NisanGuest };
 
 export interface SloEvaluationEventPayload {
   slo: Slo;

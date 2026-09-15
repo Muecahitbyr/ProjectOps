@@ -1,6 +1,7 @@
 import type { CheckResult } from "../types/check-result.types";
 import type { Todo } from "../types/todo.types";
 import type { AcquisitionCompany } from "../types/acquisition.types";
+import type { NisanGuest } from "../types/nisan.types";
 import type { HealthStatus } from "../types/health.types";
 import type { Incident } from "../types/incident.types";
 import type { ProjectHealthSummary } from "../db/dashboard.repository";
@@ -331,6 +332,9 @@ export enum RealtimeEventType {
   // Akquise-Pipeline (eigene Sidebar-Seite) - deckt Create/Update/Delete
   // gemeinsam ab, dieselbe Konvention wie TODO_UPDATED.
   ACQUISITION_COMPANY_UPDATED = "ACQUISITION_COMPANY_UPDATED",
+  // Nisan-Gaesteliste (Verlobung, eigene Sidebar-Seite) - deckt Create/
+  // Delete gemeinsam ab, dieselbe Konvention wie ACQUISITION_COMPANY_UPDATED.
+  NISAN_GUEST_UPDATED = "NISAN_GUEST_UPDATED",
 }
 
 export interface NotificationSentPayload {
@@ -691,7 +695,8 @@ export type RealtimeEvent =
   | { type: RealtimeEventType.PROBLEM_UPDATED; timestamp: string; payload: { problemId: number; organizationId: string } }
   | { type: RealtimeEventType.RESILIENCE_STATUS_CHANGED; timestamp: string; payload: ResilienceStatusChangedPayload }
   | { type: RealtimeEventType.TODO_UPDATED; timestamp: string; payload: Todo }
-  | { type: RealtimeEventType.ACQUISITION_COMPANY_UPDATED; timestamp: string; payload: AcquisitionCompany };
+  | { type: RealtimeEventType.ACQUISITION_COMPANY_UPDATED; timestamp: string; payload: AcquisitionCompany }
+  | { type: RealtimeEventType.NISAN_GUEST_UPDATED; timestamp: string; payload: NisanGuest };
 
 // Ueberladungen statt eines generischen Parameters, damit `type` und
 // `payload` beim Aufruf gegeneinander typgeprueft werden (z.B. verhindert
@@ -816,6 +821,7 @@ export function createEvent(type: RealtimeEventType.PROBLEM_UPDATED, payload: { 
 export function createEvent(type: RealtimeEventType.RESILIENCE_STATUS_CHANGED, payload: ResilienceStatusChangedPayload): RealtimeEvent;
 export function createEvent(type: RealtimeEventType.TODO_UPDATED, payload: Todo): RealtimeEvent;
 export function createEvent(type: RealtimeEventType.ACQUISITION_COMPANY_UPDATED, payload: AcquisitionCompany): RealtimeEvent;
+export function createEvent(type: RealtimeEventType.NISAN_GUEST_UPDATED, payload: NisanGuest): RealtimeEvent;
 export function createEvent(type: RealtimeEventType, payload: RealtimeEvent["payload"]): RealtimeEvent {
   return { type, timestamp: new Date().toISOString(), payload } as RealtimeEvent;
 }
