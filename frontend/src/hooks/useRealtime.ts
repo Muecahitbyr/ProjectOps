@@ -1038,6 +1038,16 @@ export function useRealtime(): UseRealtimeResult {
           void queryClient.invalidateQueries({ queryKey: ["nisan-guests"] });
           break;
         }
+
+        case "CUSTOMER_FINDER_JOB_STATUS_CHANGED": {
+          void queryClient.invalidateQueries({ queryKey: ["customer-finder-jobs"] });
+          break;
+        }
+
+        case "CUSTOMER_FINDER_RESULT_ADDED": {
+          void queryClient.invalidateQueries({ queryKey: ["customer-finder-results"] });
+          break;
+        }
       }
     };
 

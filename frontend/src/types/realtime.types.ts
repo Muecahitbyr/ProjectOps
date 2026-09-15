@@ -2,6 +2,7 @@ import type { CheckStatus, HealthStatus } from "./common.types";
 import type { Todo } from "./todo.types";
 import type { AcquisitionCompany } from "./acquisition.types";
 import type { NisanGuest } from "./nisan.types";
+import type { CustomerFinderJob } from "./customer-finder.types";
 import type { Incident } from "./incident.types";
 import type { ProjectHealthSummary } from "./dashboard.types";
 import type { AlertEvent, AlertRule } from "./alert.types";
@@ -172,7 +173,9 @@ export type RealtimeEventType =
   | "RESILIENCE_STATUS_CHANGED"
   | "TODO_UPDATED"
   | "ACQUISITION_COMPANY_UPDATED"
-  | "NISAN_GUEST_UPDATED";
+  | "NISAN_GUEST_UPDATED"
+  | "CUSTOMER_FINDER_JOB_STATUS_CHANGED"
+  | "CUSTOMER_FINDER_RESULT_ADDED";
 
 export const REALTIME_EVENT_TYPES: readonly RealtimeEventType[] = [
   "CHECK_UPDATED",
@@ -289,6 +292,8 @@ export const REALTIME_EVENT_TYPES: readonly RealtimeEventType[] = [
   "TODO_UPDATED",
   "ACQUISITION_COMPANY_UPDATED",
   "NISAN_GUEST_UPDATED",
+  "CUSTOMER_FINDER_JOB_STATUS_CHANGED",
+  "CUSTOMER_FINDER_RESULT_ADDED",
 ];
 
 export interface RealtimeCheckResult {
@@ -615,7 +620,9 @@ export type RealtimeEvent =
     }
   | { type: "TODO_UPDATED"; timestamp: string; payload: Todo }
   | { type: "ACQUISITION_COMPANY_UPDATED"; timestamp: string; payload: AcquisitionCompany }
-  | { type: "NISAN_GUEST_UPDATED"; timestamp: string; payload: NisanGuest };
+  | { type: "NISAN_GUEST_UPDATED"; timestamp: string; payload: NisanGuest }
+  | { type: "CUSTOMER_FINDER_JOB_STATUS_CHANGED"; timestamp: string; payload: CustomerFinderJob }
+  | { type: "CUSTOMER_FINDER_RESULT_ADDED"; timestamp: string; payload: { jobId: number } };
 
 export interface SloEvaluationEventPayload {
   slo: Slo;

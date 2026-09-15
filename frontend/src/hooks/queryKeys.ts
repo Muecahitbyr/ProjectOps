@@ -219,4 +219,7 @@ export const queryKeys = {
   acquisitionCompanies: ["acquisition-companies"] as const,
   // Nisan-Gaesteliste (Verlobung), eigene Sidebar-Seite.
   nisanGuests: ["nisan-guests"] as const,
+  // "Kunden Finden", eigene Sidebar-Seite.
+  customerFinderJobs: ["customer-finder-jobs"] as const,
+  customerFinderResults: ["customer-finder-results"] as const,
 };

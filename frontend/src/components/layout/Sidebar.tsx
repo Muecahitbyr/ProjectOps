@@ -12,6 +12,7 @@ import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import ChecklistOutlinedIcon from "@mui/icons-material/ChecklistOutlined";
 import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
 import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
+import PersonSearchOutlinedIcon from "@mui/icons-material/PersonSearchOutlined";
 import { AccountMenu } from "./AccountMenu";
 
 export const SIDEBAR_WIDTH = 232;
@@ -35,6 +36,7 @@ const navItems: NavItem[] = [
   { label: "Todos", to: "/todos", icon: <ChecklistOutlinedIcon fontSize="small" /> },
   { label: "Akquise", to: "/acquisition", icon: <BusinessCenterOutlinedIcon fontSize="small" /> },
   { label: "Nisan", to: "/nisan", icon: <FavoriteBorderOutlinedIcon fontSize="small" /> },
+  { label: "Kunden Finden", to: "/customer-finder", icon: <PersonSearchOutlinedIcon fontSize="small" /> },
 ];
 
 interface SidebarProps {

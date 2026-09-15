@@ -1,7 +1,9 @@
-# Auftragspunkt 7 "Deployment Vorbereitung" (Phase 10). Vier Services:
+# Auftragspunkt 7 "Deployment Vorbereitung" (Phase 10). Fuenf Services:
 # postgres (Datenbank), backend (Express/WebSocket), frontend (statisches
 # Vite-Bundle hinter eigenem nginx), reverse-proxy (einziger nach aussen
-# exponierter Service, routet /, /api, /ws - siehe deploy/nginx/reverse-proxy.conf).
+# exponierter Service, routet /, /api, /ws - siehe deploy/nginx/reverse-proxy.conf),
+# scraper (externer Google-Maps-Scraper fuer "Kunden Finden", NUR intern
+# erreichbar - kein Port-Publishing, kein Reverse-Proxy-Eintrag, siehe dort).
 #
 # Nutzung:
 #   cp .env.production.example .env.production   # ausfuellen, siehe Kommentare dort
@@ -50,6 +52,12 @@ services:
       # Sync mit dem, was der Browser tatsaechlich anfragt. Leer im
       # Normalfall (Root-Deployment).
       PUBLIC_PATH_PREFIX: ${VITE_BASE_PATH:-}
+      # "Kunden Finden" - der Scraper-Service ist nur im internen
+      # projectops-Netzwerk erreichbar, per Docker-DNS unter seinem
+      # Servicenamen "scraper" (siehe Service unten). Lokal (ohne diesen
+      # Compose-Service) faellt der Code auf http://localhost:8080 zurueck,
+      # siehe src/core/customer-finder-scraper.ts.
+      SCRAPER_BASE_URL: http://scraper:8080
     # Feste, oeffentliche DNS-Server statt Dockers Default (der intern an den
     # systemd-resolved-Stub des Hosts, 127.0.0.53, weiterreicht) - dieser
     # Stub hing am 2026-09-14 mehrfach fuer 1-2 Minuten (dockerd-Log:
@@ -93,6 +101,31 @@ services:
         condition: service_healthy
     networks: [projectops]
 
+  # "Kunden Finden" (Nutzerwunsch) - fertiges Upstream-Image, kein eigener
+  # Build. KEIN Port-Publishing (im Gegensatz zum lokalen Setup des
+  # eigenstaendigen Scraper-Repos, das 127.0.0.1:8080 bindet) - hier reicht
+  # die Erreichbarkeit ueber das interne Docker-Netzwerk, das Backend ruft
+  # http://scraper:8080 auf (siehe SCRAPER_BASE_URL oben). Kein Auth im
+  # Image (siehe Kit-Repo .env.example-Kommentar) - die fehlende externe
+  # Erreichbarkeit IST die Sicherheitsgrenze, genau wie dort per
+  # 127.0.0.1-Bindung.
+  scraper:
+    # v1.15.0 (urspruenglich aus dem Kit-Repo uebernommen) ist kaputt: der
+    # darin gepinnte Playwright-Treiber (playwright-1.57.0) wurde von
+    # Microsofts CDN entfernt, jeder Job haengt seither bei "working" fest
+    # (siehe dockerd/Container-Logs: "404 Not Found ... playwright-1.57.0-
+    # linux.zip"), live verifiziert waehrend der lokalen Entwicklung. v1.18.0
+    # laedt einen aktuellen, noch verfuegbaren Treiber und wurde lokal
+    # erfolgreich End-to-End getestet.
+    image: gosom/google-maps-scraper:v1.18.0
+    container_name: projectops-scraper
+    restart: unless-stopped
+    command: ["-web", "-data-folder", "/gmapsdata"]
+    volumes:
+      - projectops-scraper-data:/gmapsdata
+      - projectops-scraper-cache:/opt
+    networks: [projectops]
+
   reverse-proxy:
     image: nginx:1.27-alpine
     restart: unless-stopped
@@ -112,3 +145,5 @@ networks:
 
 volumes:
   projectops-postgres-data:
+  projectops-scraper-data:
+  projectops-scraper-cache:

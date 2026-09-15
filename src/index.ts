@@ -54,6 +54,7 @@ import { escalationPoliciesRouter } from "./routes/escalation-policies.routes";
 import { todosRouter } from "./routes/todos.routes";
 import { acquisitionRouter } from "./routes/acquisition.routes";
 import { nisanRouter } from "./routes/nisan.routes";
+import { customerFinderRouter } from "./routes/customer-finder.routes";
 import { v1Router } from "./routes/v1";
 import { requestContextMiddleware } from "./middleware/request-context.middleware";
 import { errorHandler } from "./middleware/error-handler";
@@ -64,6 +65,7 @@ import { pool } from "./db/pool";
 import { syncProjects } from "./db/projects.repository";
 import { closeRealtimeServer, initRealtimeServer } from "./realtime/websocket.server";
 import { startTodoDigest, stopTodoDigest } from "./core/todo-digest";
+import { startCustomerFinderPolling, stopCustomerFinderPolling } from "./core/customer-finder-poller";
 import { getLocalAgentId, markLocalAgentOffline } from "./core/local-agent";
 import { getMonitoringAgentById } from "./db/monitoring-agents.repository";
 
@@ -127,6 +129,7 @@ app.use("/api", escalationPoliciesRouter);
 app.use("/api", todosRouter);
 app.use("/api", acquisitionRouter);
 app.use("/api", nisanRouter);
+app.use("/api", customerFinderRouter);
 app.use("/api", reliabilityRouter);
 app.use("/api", problemsRouter);
 app.use("/api", resilienceRouter);
@@ -168,11 +171,13 @@ async function main(): Promise<void> {
   const scheduler = new Scheduler(monitorService, checkIntervalMs);
   scheduler.start();
   startTodoDigest();
+  startCustomerFinderPolling();
 
   const shutdown = async (): Promise<void> => {
     logger.info("ProjectOps Backend wird beendet");
     scheduler.stop();
     stopTodoDigest();
+    stopCustomerFinderPolling();
     // Echtes AGENT_OFFLINE-Signal statt nur auf den Heartbeat-Timeout zu
     // warten (Phase 13 Teil 1) - Broadcast VOR closeRealtimeServer(), sonst
     // erreicht das Event keinen Client mehr.

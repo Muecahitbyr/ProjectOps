@@ -2,6 +2,7 @@ import type { CheckResult } from "../types/check-result.types";
 import type { Todo } from "../types/todo.types";
 import type { AcquisitionCompany } from "../types/acquisition.types";
 import type { NisanGuest } from "../types/nisan.types";
+import type { CustomerFinderJob } from "../types/customer-finder.types";
 import type { HealthStatus } from "../types/health.types";
 import type { Incident } from "../types/incident.types";
 import type { ProjectHealthSummary } from "../db/dashboard.repository";
@@ -335,6 +336,14 @@ export enum RealtimeEventType {
   // Nisan-Gaesteliste (Verlobung, eigene Sidebar-Seite) - deckt Create/
   // Delete gemeinsam ab, dieselbe Konvention wie ACQUISITION_COMPANY_UPDATED.
   NISAN_GUEST_UPDATED = "NISAN_GUEST_UPDATED",
+  // "Kunden Finden" (eigene Sidebar-Seite) - Scraper-Job-Statuswechsel
+  // (PENDING/WORKING/DONE/FAILED).
+  CUSTOMER_FINDER_JOB_STATUS_CHANGED = "CUSTOMER_FINDER_JOB_STATUS_CHANGED",
+  // Deckt Insert (nach abgeschlossenem Scraper-Job)/Accept/Delete auf
+  // customer_finder_results gemeinsam ab, dieselbe Konvention wie
+  // ACQUISITION_COMPANY_UPDATED - Payload ist nur die jobId, das Frontend
+  // invalidiert schlicht die Ergebnisliste.
+  CUSTOMER_FINDER_RESULT_ADDED = "CUSTOMER_FINDER_RESULT_ADDED",
 }
 
 export interface NotificationSentPayload {
@@ -696,7 +705,9 @@ export type RealtimeEvent =
   | { type: RealtimeEventType.RESILIENCE_STATUS_CHANGED; timestamp: string; payload: ResilienceStatusChangedPayload }
   | { type: RealtimeEventType.TODO_UPDATED; timestamp: string; payload: Todo }
   | { type: RealtimeEventType.ACQUISITION_COMPANY_UPDATED; timestamp: string; payload: AcquisitionCompany }
-  | { type: RealtimeEventType.NISAN_GUEST_UPDATED; timestamp: string; payload: NisanGuest };
+  | { type: RealtimeEventType.NISAN_GUEST_UPDATED; timestamp: string; payload: NisanGuest }
+  | { type: RealtimeEventType.CUSTOMER_FINDER_JOB_STATUS_CHANGED; timestamp: string; payload: CustomerFinderJob }
+  | { type: RealtimeEventType.CUSTOMER_FINDER_RESULT_ADDED; timestamp: string; payload: { jobId: number } };
 
 // Ueberladungen statt eines generischen Parameters, damit `type` und
 // `payload` beim Aufruf gegeneinander typgeprueft werden (z.B. verhindert
@@ -822,6 +833,8 @@ export function createEvent(type: RealtimeEventType.RESILIENCE_STATUS_CHANGED, p
 export function createEvent(type: RealtimeEventType.TODO_UPDATED, payload: Todo): RealtimeEvent;
 export function createEvent(type: RealtimeEventType.ACQUISITION_COMPANY_UPDATED, payload: AcquisitionCompany): RealtimeEvent;
 export function createEvent(type: RealtimeEventType.NISAN_GUEST_UPDATED, payload: NisanGuest): RealtimeEvent;
+export function createEvent(type: RealtimeEventType.CUSTOMER_FINDER_JOB_STATUS_CHANGED, payload: CustomerFinderJob): RealtimeEvent;
+export function createEvent(type: RealtimeEventType.CUSTOMER_FINDER_RESULT_ADDED, payload: { jobId: number }): RealtimeEvent;
 export function createEvent(type: RealtimeEventType, payload: RealtimeEvent["payload"]): RealtimeEvent {
   return { type, timestamp: new Date().toISOString(), payload } as RealtimeEvent;
 }

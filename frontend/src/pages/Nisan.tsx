@@ -143,7 +143,16 @@ function GuestListCard({
         )}
         <Stack divider={<Box sx={{ borderBottom: "1px solid", borderColor: "divider" }} />}>
           {guests.map((guest) => (
-            <GuestRow key={guest.id} guest={guest} onDelete={() => onDelete(guest.id)} onToggleStatus={() => onToggleStatus(guest)} />
+            <GuestRow
+              key={guest.id}
+              guest={guest}
+              onDelete={() => {
+                if (window.confirm(`Möchtest du wirklich "${guest.name}" aus ${config.label}s Gästen löschen?`)) {
+                  onDelete(guest.id);
+                }
+              }}
+              onToggleStatus={() => onToggleStatus(guest)}
+            />
           ))}
         </Stack>
       </CardContent>
