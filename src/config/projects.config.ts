@@ -137,7 +137,9 @@ export const projects: ProjectConfig[] = [
     name: "Tano",
     type: "mobile-app",
     // Umbenennung 2026-09-04: die App hiess frueher GuessTheCapitalCity,
-    // heisst jetzt Tano (Bundle-ID bayar-solutions.tano). Interne id/
+    // heisst jetzt Tano (Bundle-ID bayar-soltuions.tano - Tippfehler ist
+    // Teil der echten, im App Store veroeffentlichten Bundle-ID, siehe
+    // Kommentar bei "gtcc-appstore" unten). Interne id/
     // Firebase-Projekt-id (guessthecapitalcity) sowie die gtcc-*-Check-
     // Praefixe bleiben unveraendert, da sie echte externe Referenzen
     // (Firebase-Projekt, historische Check-IDs) sind, keine Anzeige-Labels.
@@ -173,12 +175,16 @@ export const projects: ProjectConfig[] = [
       // Feste, immer gueltige Beispiel-Query genuegt fuer einen reinen
       // Erreichbarkeits-/Content-Type-Nachweis.
       { id: "gtcc-itunes", type: "http", target: "https://itunes.apple.com/search?term=a&media=music&limit=1", intervalMinutes: 5, enabled: true, expectedContentType: "text/javascript" },
-      // App-Store-Praesenz der eigenen App (mittlerweile umbenannt zu "Tano",
-      // Bundle-ID bayar-solutions.tano). "gtcc-itunes" oben deckt das nicht ab
-      // - das ist ein reiner Erreichbarkeits-Check der Search API fuer den
-      // Song-Pool, keine Abfrage der eigenen App. Body-validiert (resultCount),
-      // nicht nur HTTP 200 - siehe app-store.check.ts.
-      { id: "gtcc-appstore", type: "app-store", target: "bayar-solutions.tano", intervalMinutes: 5, enabled: true },
+      // App-Store-Praesenz der eigenen App (mittlerweile umbenannt zu "Tano").
+      // Bundle-ID lt. App Store Connect ist "bayar-soltuions.tano" - ein
+      // Tippfehler (u/t vertauscht ggue. "solutions"), der aber real so im
+      // App Store veroeffentlicht ist (siehe itunes.apple.com/lookup?id=
+      // 6807916154 - liefert bundleId "bayar-soltuions.tano"). Check-Target
+      // MUSS diesen Tippfehler exakt spiegeln, sonst 0 Treffer. "gtcc-itunes"
+      // oben deckt das nicht ab - das ist ein reiner Erreichbarkeits-Check
+      // der Search API fuer den Song-Pool, keine Abfrage der eigenen App.
+      // Body-validiert (resultCount), nicht nur HTTP 200 - siehe app-store.check.ts.
+      { id: "gtcc-appstore", type: "app-store", target: "bayar-soltuions.tano", intervalMinutes: 5, enabled: true },
       // GuessTheCapitalCity hat laut Discovery Report keinen eigenen Server -
       // dieser Platzhalter-Check hatte nie ein reales Ziel und wird
       // deaktiviert statt mit einer erfundenen URL befuellt.
