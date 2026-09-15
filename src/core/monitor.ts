@@ -105,14 +105,33 @@ export class MonitorService {
 
     const isFailing = result.status === "ERROR" || result.status === "OFFLINE";
     const isRecovered = result.status === "ONLINE";
+    // Flap-Damping (Nutzerwunsch 2026-09-15): ein einzelner fehlgeschlagener
+    // Check bedeutet noch keinen Incident - erst wenn der VORHERIGE
+    // Check-Result ebenfalls fehlgeschlagen war, gilt der Ausfall als
+    // bestaetigt. Kurze, sich selbst innerhalb eines Ticks loesende
+    // Netzwerk-Aussetzer (siehe z.B. rechno-firestore-rest 2026-09-15,
+    // mehrere isolierte ~30s-Blips) oeffnen dadurch keinen Incident mehr und
+    // loesen keine Push-Benachrichtigung aus. check_results wird trotzdem
+    // IMMER geschrieben (oben, unconditional) - reine Verzoegerung der
+    // Incident-Eroeffnung, kein Datenverlust. Eine Wiederherstellung
+    // (isRecovered) wird dagegen NIE verzoegert - ein einzelner erfolgreicher
+    // Check schliesst einen offenen Incident sofort.
+    const previousWasFailing = previous?.status === "ERROR" || previous?.status === "OFFLINE";
+    const isConfirmedFailing = isFailing && previousWasFailing;
 
-    if (isFailing && maintenanceWindow) {
+    if (isFailing && !isConfirmedFailing) {
+      logger.info("Erster Fehlschlag unterdrueckt (Flap-Damping, noch kein bestaetigter Ausfall)", {
+        project: project.id,
+        check: check.id,
+        status: result.status,
+      });
+    } else if (isConfirmedFailing && maintenanceWindow) {
       logger.info("Ausfall waehrend Wartungsfenster unterdrueckt (kein Incident, keine Benachrichtigung)", {
         project: project.id,
         check: check.id,
         maintenanceWindowId: maintenanceWindow.id,
       });
-    } else if (isFailing) {
+    } else if (isConfirmedFailing) {
       // Phase 11 Teil 1 - eigener try/catch, ein Fehler in der Regel-
       // Auswertung darf das eigentliche Monitoring niemals unterbrechen.
       try {

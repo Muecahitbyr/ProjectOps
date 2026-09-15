@@ -71,7 +71,14 @@ import { getMonitoringAgentById } from "./db/monitoring-agents.repository";
 
 const app = express();
 const port = process.env.PORT ?? 4000;
-const checkIntervalMs = Number(process.env.CHECK_INTERVAL_MS) || 30_000;
+// Nutzerwunsch 2026-09-15: 60s statt 30s - jeder aktivierte Check lief bisher
+// bei JEDEM Scheduler-Tick (die konfigurierte checks[].intervalMinutes in
+// projects.config.ts wird vom Scheduler nicht ausgewertet), wodurch kurze,
+// sich selbst loesende Netzwerk-Aussetzer (z.B. ein 30s-Blip) sofort als
+// eigener Incident samt Push-Benachrichtigung auftauchten. Zusammen mit dem
+// Flap-Damping in monitor.ts (2 aufeinanderfolgende Fehlschlaege noetig)
+// ergibt das effektiv "ein echter Ausfall muss ca. 1 Minute anhalten".
+const checkIntervalMs = Number(process.env.CHECK_INTERVAL_MS) || 60_000;
 
 app.use(cors(corsOptions));
 app.use(express.json());

@@ -1,7 +1,10 @@
 import { logger } from "./logger";
 import type { MonitorService } from "./monitor";
 
-const DEFAULT_INTERVAL_MS = 30_000;
+// Nur als Fallback relevant, falls diese Klasse je ohne expliziten
+// intervalMs-Wert instanziiert wird - src/index.ts uebergibt aktuell immer
+// checkIntervalMs (Default 60_000, siehe dortiger Kommentar).
+const DEFAULT_INTERVAL_MS = 60_000;
 
 export class Scheduler {
   private timer: NodeJS.Timeout | undefined;
