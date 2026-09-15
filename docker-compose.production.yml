@@ -50,6 +50,17 @@ services:
       # Sync mit dem, was der Browser tatsaechlich anfragt. Leer im
       # Normalfall (Root-Deployment).
       PUBLIC_PATH_PREFIX: ${VITE_BASE_PATH:-}
+    # Feste, oeffentliche DNS-Server statt Dockers Default (der intern an den
+    # systemd-resolved-Stub des Hosts, 127.0.0.53, weiterreicht) - dieser
+    # Stub hing am 2026-09-14 mehrfach fuer 1-2 Minuten (dockerd-Log:
+    # "[resolver] failed to query external DNS server ... i/o timeout"),
+    # wodurch ALLE ausgehenden Checks (Firebase, countriesnow.space, CartoDB,
+    # iTunes, bayar-solutions.de) gleichzeitig scheinbar gleichzeitig
+    # ausfielen, obwohl kein echter Ausfall vorlag - reine DNS-Aufloesung im
+    # Backend-Container, nicht die eigentlichen Dienste.
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     depends_on:
       postgres:
         condition: service_healthy
