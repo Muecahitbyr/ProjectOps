@@ -103,7 +103,19 @@ customerFinderRouter.post("/customer-finder/results/:id/accept", authenticate, a
     throw notFoundError("Ergebnis nicht gefunden");
   }
 
-  let company = await createAcquisitionCompany({ name: result.name });
+  // Kontaktdaten (Telefon/Email/Website/Branche/Adresse) mitnehmen statt
+  // nur den Namen - sonst waeren sie nach der Uebernahme verloren und man
+  // koennte die Firma aus der Akquise-Seite heraus gar nicht anrufen
+  // (echter, live gefundener Bug/Luecke, siehe Nutzerfeedback 2026-09-16).
+  let company = await createAcquisitionCompany({
+    name: result.name,
+    ...(result.phone ? { phone: result.phone } : {}),
+    ...(result.email ? { email: result.email } : {}),
+    ...(result.website ? { websiteUrl: result.website } : {}),
+    ...(result.category ? { category: result.category } : {}),
+    ...(result.address ? { address: result.address } : {}),
+    ...(result.openingHours ? { openingHours: result.openingHours } : {}),
+  });
   const updated = await updateAcquisitionCompany(company.id, { websiteBuilt: true });
   if (updated) company = updated;
 

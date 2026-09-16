@@ -77,6 +77,25 @@ parameterized SQL (no ORM), PostgreSQL; React 19/Vite/MUI v9/React Query fronten
   `.MuiPopover-root li, .MuiMenu-list li` locators. Prefer `getByRole("cell"/"heading",
   {name, exact:true})` or `.filter({has: page.getByRole(...)})` over `.filter({hasText})` or
   bare `getByText()`, which are prone to ambiguous substring matches.
+- **Check-Intervall ist global, nicht pro Check**: `checks[].intervalMinutes` in
+  `projects.config.ts` wird vom Scheduler NIE ausgewertet (live gefundener Bug, 2026-09-15) —
+  jeder `enabled:true`-Check laeuft bei JEDEM Scheduler-Tick (`CHECK_INTERVAL_MS`, Code-Default
+  60s in `src/index.ts`). Flap-Damping in `core/monitor.ts` (2 aufeinanderfolgende
+  Fehlschlaege noetig, sonst wird der erste stillschweigend verworfen) verhindert Incident-/
+  Push-Spam bei kurzen, sich selbst loesenden Aussetzern. `CHECK_INTERVAL_MS` kann in
+  `.env.production` explizit ueberschrieben sein (nicht versioniert) — beim Aendern des
+  Code-Defaults IMMER auch dort pruefen, sonst wirkt die Aenderung nicht (genau das ist einmal
+  passiert).
+- **Reverse-Proxy nach Backend/Frontend-Rebuild neu starten**: `deploy/nginx/reverse-proxy.conf`
+  nutzt statische nginx `upstream`-Bloecke, die den Container-Hostnamen (Docker-DNS) nur einmal
+  aufloesen. Nach jedem `docker compose up -d --build`, das `backend`/`frontend` neu erstellt
+  (= neue interne IP), zeigt nginx sonst auf die alte IP → 502 Bad Gateway. Danach IMMER
+  zusaetzlich `docker compose ... restart reverse-proxy`.
+- **Backend-Container braucht explizite DNS-Server**: `docker-compose.production.yml` setzt
+  `dns: [1.1.1.1, 8.8.8.8]` fuer `backend` - der Host-`systemd-resolved`-Stub (127.0.0.53), an
+  den Dockers Default-Resolver sonst weiterreicht, kann kurz haengen und macht dann ALLE
+  gleichzeitig laufenden ausgehenden Checks scheinbar gleichzeitig "down" (Ursache: DNS, nicht
+  die geprueften Dienste selbst) - live so aufgetreten und diagnostiziert (2026-09-14).
 
 ## Workflow this project is built with (phase-based development)
 
@@ -115,3 +134,29 @@ self-contained enterprise feature area. Standing rules across phases:
   in a per-service/dependency loop.
 - Service catalog types: `src/types/service.types.ts` (`Service`, `ServiceDependency`,
   `ServiceHealth`, criticality/environment/lifecycle enums) — spiegelt migration `0044`.
+- **Akquise** (Kunden-Pipeline + Mini-CRM, eigene Sidebar-Seite): `src/db/acquisition.repository.ts`,
+  `frontend/src/pages/Acquisition.tsx`. Feste 6-Schritt-Pipeline (`stage` abgeleitet, nicht
+  gespeichert, siehe `deriveStage()`) + Mini-CRM-Erweiterung (migration `0075`): Kontaktdaten
+  (`phone`/`email`/`websiteUrl`/`category`/`address`/`openingHours`), `nextContactAt`
+  (Wiedervorlage, ueberfaellige/heutige Eintraege werden oben sortiert/farblich markiert) und
+  `acquisition_contact_attempts` (strukturierter Anruf-/Kontaktverlauf, eigene Tabelle statt
+  Freitext-Feld).
+- **Kunden Finden** (Lead-Gen via externem Google-Maps-Scraper, eigene Sidebar-Seite):
+  `src/core/customer-finder-scraper.ts` (Scraper-API-Client, Nominatim-Geocoding, CSV-Parser -
+  Spalten per Name gesucht, nicht Position, robust gegen Scraper-Versionswechsel),
+  `src/core/customer-finder-poller.ts` (Polling-Loop, der Scraper hat keine Webhooks). Scraper-
+  Image `gosom/google-maps-scraper` — **`v1.15.0` ist kaputt** (gepinnter Playwright-Treiber
+  vom CDN entfernt, Jobs haengen ewig bei `working` fest, live diagnostiziert 2026-09-15/16),
+  mindestens `v1.18.0` verwenden (`docker-compose.production.yml`). Accept-Flow uebertraegt
+  ALLE Kontaktfelder (inkl. `openingHours`) nach `acquisition_companies` mit `websiteBuilt:true`
+  (Nutzerwunsch) — nicht nur den Namen, sonst fehlen Telefon/Öffnungszeiten in der Akquise.
+- **Öffnungszeiten-Anzeige** ("wann kann ich ueberhaupt anrufen"): rohes JSON vom Scraper
+  (deutsche Wochentage, Zeitraeume mit En-Dash "–") wird unverarbeitet als TEXT gespeichert
+  (`opening_hours`-Spalte, migration `0076`) und erst im Frontend geparst/interpretiert -
+  `frontend/src/utils/openingHours.ts` (Parsing + "jetzt geoeffnet?"-Live-Berechnung via
+  Europe/Berlin-Zeit) + `frontend/src/components/common/OpeningHoursIndicator.tsx`
+  (wiederverwendete Anzeige-Komponente, genutzt in Acquisition.tsx UND CustomerFinder.tsx).
+- Nisan (Gaesteliste Verlobung, eigene Sidebar-Seite): `src/db/nisan.repository.ts`,
+  `frontend/src/pages/Nisan.tsx`. Zwei feste Listen (Host-Enum), Status CONFIRMED/MAYBE
+  ("Fix dabei"/"Eingeladen"), Loeschen fragt per `window.confirm()` nach (kein Custom-Dialog
+  noetig, Konvention siehe `ClusterAgentsTab.tsx`).

@@ -34,5 +34,6 @@ export interface CustomerFinderResult {
   address: string | null;
   rating: number | null;
   reviewCount: number | null;
+  openingHours: string | null;
   createdAt: string;
 }

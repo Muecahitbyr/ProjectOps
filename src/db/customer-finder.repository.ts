@@ -32,6 +32,7 @@ interface CustomerFinderResultRow {
   address: string | null;
   rating: string | null;
   review_count: number | null;
+  opening_hours: string | null;
   created_at: string | Date;
 }
 
@@ -70,12 +71,13 @@ function mapResultRow(row: CustomerFinderResultRow): CustomerFinderResult {
     address: row.address,
     rating: row.rating === null ? null : Number(row.rating),
     reviewCount: row.review_count,
+    openingHours: row.opening_hours,
     createdAt: toIsoString(row.created_at),
   };
 }
 
 const JOB_COLUMNS = `id, keywords, city, scraper_job_id, status, filter_no_website, filter_max_review_count, result_count, error_message, created_at, updated_at`;
-const RESULT_COLUMNS = `id, job_id, name, phone, email, website, category, address, rating, review_count, created_at`;
+const RESULT_COLUMNS = `id, job_id, name, phone, email, website, category, address, rating, review_count, opening_hours, created_at`;
 
 export async function listCustomerFinderJobs(): Promise<CustomerFinderJob[]> {
   const { rows } = await pool.query<CustomerFinderJobRow>(
@@ -166,12 +168,23 @@ export async function createCustomerFinderResults(jobId: number, leads: ScrapedL
 
   const values: unknown[] = [];
   const rowsSql = leads.map((lead, i) => {
-    const base = i * 9;
-    values.push(jobId, lead.name, lead.phone, lead.email, lead.website, lead.category, lead.address, lead.rating, lead.reviewCount);
-    return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9})`;
+    const base = i * 10;
+    values.push(
+      jobId,
+      lead.name,
+      lead.phone,
+      lead.email,
+      lead.website,
+      lead.category,
+      lead.address,
+      lead.rating,
+      lead.reviewCount,
+      lead.openingHours,
+    );
+    return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10})`;
   });
   const { rows } = await pool.query<CustomerFinderResultRow>(
-    `INSERT INTO customer_finder_results (job_id, name, phone, email, website, category, address, rating, review_count)
+    `INSERT INTO customer_finder_results (job_id, name, phone, email, website, category, address, rating, review_count, opening_hours)
      VALUES ${rowsSql.join(", ")} RETURNING ${RESULT_COLUMNS}`,
     values,
   );

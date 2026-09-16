@@ -35,6 +35,10 @@ export interface CustomerFinderResult {
   address: string | null;
   rating: number | null;
   reviewCount: number | null;
+  // Rohes JSON vom Scraper (z.B. {"Montag":["09:00-18:00"],"Sonntag":
+  // ["Geschlossen"]}) - Parsing/"jetzt geoeffnet"-Logik im Frontend, siehe
+  // frontend/src/utils/openingHours.ts.
+  openingHours: string | null;
   createdAt: string;
 }
 
@@ -50,4 +54,5 @@ export interface ScrapedLead {
   address: string | null;
   rating: number | null;
   reviewCount: number | null;
+  openingHours: string | null;
 }

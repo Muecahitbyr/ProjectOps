@@ -217,6 +217,7 @@ export const queryKeys = {
   todoCategories: ["todos", "categories"] as const,
   // Akquise-Pipeline, eigene Sidebar-Seite.
   acquisitionCompanies: ["acquisition-companies"] as const,
+  acquisitionContactAttempts: (companyId: number) => ["acquisition-companies", companyId, "contact-attempts"] as const,
   // Nisan-Gaesteliste (Verlobung), eigene Sidebar-Seite.
   nisanGuests: ["nisan-guests"] as const,
   // "Kunden Finden", eigene Sidebar-Seite.

@@ -1,5 +1,11 @@
 import { apiClient } from "./client";
-import type { AcquisitionCompany, CreateAcquisitionCompanyInput, UpdateAcquisitionCompanyInput } from "../types/acquisition.types";
+import type {
+  AcquisitionCompany,
+  AcquisitionContactAttempt,
+  CreateAcquisitionCompanyInput,
+  CreateContactAttemptInput,
+  UpdateAcquisitionCompanyInput,
+} from "../types/acquisition.types";
 
 export async function fetchAcquisitionCompanies(): Promise<AcquisitionCompany[]> {
   const { data } = await apiClient.get<AcquisitionCompany[]>("/api/acquisition-companies");
@@ -18,4 +24,14 @@ export async function updateAcquisitionCompany(id: number, input: UpdateAcquisit
 
 export async function deleteAcquisitionCompany(id: number): Promise<void> {
   await apiClient.delete(`/api/acquisition-companies/${id}`);
+}
+
+export async function fetchContactAttempts(companyId: number): Promise<AcquisitionContactAttempt[]> {
+  const { data } = await apiClient.get<AcquisitionContactAttempt[]>(`/api/acquisition-companies/${companyId}/contact-attempts`);
+  return data;
+}
+
+export async function createContactAttempt(companyId: number, input: CreateContactAttemptInput): Promise<AcquisitionContactAttempt> {
+  const { data } = await apiClient.post<AcquisitionContactAttempt>(`/api/acquisition-companies/${companyId}/contact-attempts`, input);
+  return data;
 }

@@ -1,5 +1,13 @@
 import { pool } from "./pool";
-import type { AcquisitionCompany, AcquisitionStage, CreateAcquisitionCompanyInput, UpdateAcquisitionCompanyInput } from "../types/acquisition.types";
+import type {
+  AcquisitionCompany,
+  AcquisitionContactAttempt,
+  AcquisitionStage,
+  ContactAttemptOutcome,
+  CreateAcquisitionCompanyInput,
+  CreateContactAttemptInput,
+  UpdateAcquisitionCompanyInput,
+} from "../types/acquisition.types";
 
 interface AcquisitionCompanyRow {
   id: string | number;
@@ -12,8 +20,23 @@ interface AcquisitionCompanyRow {
   planning_done: boolean;
   implementation_done: boolean;
   live: boolean;
+  phone: string | null;
+  email: string | null;
+  website_url: string | null;
+  category: string | null;
+  address: string | null;
+  opening_hours: string | null;
+  next_contact_at: string | null;
   created_at: string | Date;
   updated_at: string | Date;
+}
+
+interface ContactAttemptRow {
+  id: string | number;
+  company_id: string | number;
+  outcome: ContactAttemptOutcome;
+  note: string | null;
+  created_at: string | Date;
 }
 
 function toIsoString(value: string | Date): string {
@@ -53,13 +76,31 @@ function mapRow(row: AcquisitionCompanyRow): AcquisitionCompany {
     planningDone: row.planning_done,
     implementationDone: row.implementation_done,
     live: row.live,
+    phone: row.phone,
+    email: row.email,
+    websiteUrl: row.website_url,
+    category: row.category,
+    address: row.address,
+    openingHours: row.opening_hours,
+    nextContactAt: row.next_contact_at,
     stage: deriveStage(row),
     createdAt: toIsoString(row.created_at),
     updatedAt: toIsoString(row.updated_at),
   };
 }
 
-const COLUMNS = `id, name, website_built, called, wants_website, website_sent, confirmed_after_viewing, planning_done, implementation_done, live, created_at, updated_at`;
+function mapContactAttemptRow(row: ContactAttemptRow): AcquisitionContactAttempt {
+  return {
+    id: Number(row.id),
+    companyId: Number(row.company_id),
+    outcome: row.outcome,
+    note: row.note,
+    createdAt: toIsoString(row.created_at),
+  };
+}
+
+const COLUMNS = `id, name, website_built, called, wants_website, website_sent, confirmed_after_viewing, planning_done, implementation_done, live, phone, email, website_url, category, address, opening_hours, next_contact_at, created_at, updated_at`;
+const CONTACT_ATTEMPT_COLUMNS = `id, company_id, outcome, note, created_at`;
 
 export async function listAcquisitionCompanies(): Promise<AcquisitionCompany[]> {
   const { rows } = await pool.query<AcquisitionCompanyRow>(`SELECT ${COLUMNS} FROM acquisition_companies ORDER BY created_at ASC`);
@@ -73,8 +114,17 @@ export async function getAcquisitionCompanyById(id: number): Promise<Acquisition
 
 export async function createAcquisitionCompany(input: CreateAcquisitionCompanyInput): Promise<AcquisitionCompany> {
   const { rows } = await pool.query<AcquisitionCompanyRow>(
-    `INSERT INTO acquisition_companies (name) VALUES ($1) RETURNING ${COLUMNS}`,
-    [input.name],
+    `INSERT INTO acquisition_companies (name, phone, email, website_url, category, address, opening_hours)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING ${COLUMNS}`,
+    [
+      input.name,
+      input.phone ?? null,
+      input.email ?? null,
+      input.websiteUrl ?? null,
+      input.category ?? null,
+      input.address ?? null,
+      input.openingHours ?? null,
+    ],
   );
   return mapRow(rows[0]!);
 }
@@ -179,6 +229,30 @@ export async function updateAcquisitionCompany(id: number, rawInput: UpdateAcqui
     values.push(input.live);
     sets.push(`live = $${values.length}`);
   }
+  if (input.phone !== undefined) {
+    values.push(input.phone);
+    sets.push(`phone = $${values.length}`);
+  }
+  if (input.email !== undefined) {
+    values.push(input.email);
+    sets.push(`email = $${values.length}`);
+  }
+  if (input.websiteUrl !== undefined) {
+    values.push(input.websiteUrl);
+    sets.push(`website_url = $${values.length}`);
+  }
+  if (input.category !== undefined) {
+    values.push(input.category);
+    sets.push(`category = $${values.length}`);
+  }
+  if (input.address !== undefined) {
+    values.push(input.address);
+    sets.push(`address = $${values.length}`);
+  }
+  if (input.nextContactAt !== undefined) {
+    values.push(input.nextContactAt);
+    sets.push(`next_contact_at = $${values.length}`);
+  }
   if (sets.length === 0) {
     return getAcquisitionCompanyById(id);
   }
@@ -195,4 +269,23 @@ export async function updateAcquisitionCompany(id: number, rawInput: UpdateAcqui
 export async function deleteAcquisitionCompany(id: number): Promise<AcquisitionCompany | undefined> {
   const { rows } = await pool.query<AcquisitionCompanyRow>(`DELETE FROM acquisition_companies WHERE id = $1 RETURNING ${COLUMNS}`, [id]);
   return rows[0] ? mapRow(rows[0]) : undefined;
+}
+
+// Kontaktversuch-Verlauf (Mini-CRM, Nutzerwunsch 2026-09-16) - damit bei
+// schwer erreichbaren Firmen (Friseure/Restaurants waehrend Geschaeftszeiten)
+// sichtbar bleibt, was bereits versucht wurde.
+export async function listContactAttempts(companyId: number): Promise<AcquisitionContactAttempt[]> {
+  const { rows } = await pool.query<ContactAttemptRow>(
+    `SELECT ${CONTACT_ATTEMPT_COLUMNS} FROM acquisition_contact_attempts WHERE company_id = $1 ORDER BY created_at DESC`,
+    [companyId],
+  );
+  return rows.map(mapContactAttemptRow);
+}
+
+export async function createContactAttempt(companyId: number, input: CreateContactAttemptInput): Promise<AcquisitionContactAttempt> {
+  const { rows } = await pool.query<ContactAttemptRow>(
+    `INSERT INTO acquisition_contact_attempts (company_id, outcome, note) VALUES ($1, $2, $3) RETURNING ${CONTACT_ATTEMPT_COLUMNS}`,
+    [companyId, input.outcome, input.note ?? null],
+  );
+  return mapContactAttemptRow(rows[0]!);
 }

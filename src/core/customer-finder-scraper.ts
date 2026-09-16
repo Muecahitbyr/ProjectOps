@@ -189,6 +189,7 @@ export function extractLeadRows(csvText: string, filters: CustomerFinderFilters)
   const addressIdx = indexOf("address");
   const ratingIdx = indexOf("review_rating");
   const reviewCountIdx = indexOf("review_count");
+  const openHoursIdx = indexOf("open_hours");
 
   const leads: ScrapedLead[] = [];
   for (const row of rows.slice(1)) {
@@ -210,6 +211,7 @@ export function extractLeadRows(csvText: string, filters: CustomerFinderFilters)
       address: toNullable(row[addressIdx]),
       rating: parseNumber(row[ratingIdx]),
       reviewCount,
+      openingHours: toNullable(row[openHoursIdx]),
     });
   }
   return leads;

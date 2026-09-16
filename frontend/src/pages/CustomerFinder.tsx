@@ -29,6 +29,7 @@ import StarOutlinedIcon from "@mui/icons-material/StarOutlined";
 import { PageContainer } from "../components/layout/PageContainer";
 import { LoadingState } from "../components/common/LoadingState";
 import { ErrorState } from "../components/common/ErrorState";
+import { OpeningHoursIndicator } from "../components/common/OpeningHoursIndicator";
 import { getErrorMessage } from "../utils/getErrorMessage";
 import {
   useAcceptCustomerFinderResult,
@@ -117,6 +118,7 @@ function ResultCard({ result, onAccept, onReject }: { result: CustomerFinderResu
               <Typography variant="body2">{result.address}</Typography>
             </Stack>
           )}
+          {result.openingHours && <OpeningHoursIndicator openingHours={result.openingHours} />}
         </Stack>
       </CardContent>
     </Card>
@@ -264,6 +266,7 @@ export function CustomerFinder() {
                       <TableCell>Adresse</TableCell>
                       <TableCell>Bewertung</TableCell>
                       <TableCell>Anzahl</TableCell>
+                      <TableCell>Öffnungszeiten</TableCell>
                       <TableCell align="right">Aktionen</TableCell>
                     </TableRow>
                   </TableHead>
@@ -278,6 +281,7 @@ export function CustomerFinder() {
                         <TableCell>{result.address ?? "–"}</TableCell>
                         <TableCell>{result.rating ?? "–"}</TableCell>
                         <TableCell>{result.reviewCount ?? "–"}</TableCell>
+                        <TableCell>{result.openingHours ? <OpeningHoursIndicator openingHours={result.openingHours} /> : "–"}</TableCell>
                         <TableCell align="right">
                           <Tooltip title="Zu Akquise übernehmen">
                             <IconButton size="small" color="success" onClick={() => acceptResult.mutate(result.id)}>

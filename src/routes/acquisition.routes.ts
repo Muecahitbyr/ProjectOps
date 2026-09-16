@@ -2,8 +2,10 @@ import { Router } from "express";
 import { z } from "zod";
 import {
   createAcquisitionCompany,
+  createContactAttempt,
   deleteAcquisitionCompany,
   listAcquisitionCompanies,
+  listContactAttempts,
   updateAcquisitionCompany,
 } from "../db/acquisition.repository";
 import { authenticate } from "../middleware/authenticate";
@@ -29,6 +31,12 @@ acquisitionRouter.get("/acquisition-companies", authenticate, async (_req, res) 
 const createSchema = z
   .object({
     name: z.string().trim().min(1).max(200),
+    phone: z.string().trim().min(1).max(50).optional(),
+    email: z.string().trim().min(1).max(200).optional(),
+    websiteUrl: z.string().trim().min(1).max(500).optional(),
+    category: z.string().trim().min(1).max(200).optional(),
+    address: z.string().trim().min(1).max(500).optional(),
+    openingHours: z.string().trim().min(1).max(2000).optional(),
   })
   .strict();
 
@@ -54,6 +62,17 @@ const updateSchema = z
     planningDone: z.boolean().optional(),
     implementationDone: z.boolean().optional(),
     live: z.boolean().optional(),
+    phone: z.string().trim().max(50).nullable().optional(),
+    email: z.string().trim().max(200).nullable().optional(),
+    websiteUrl: z.string().trim().max(500).nullable().optional(),
+    category: z.string().trim().max(200).nullable().optional(),
+    address: z.string().trim().max(500).nullable().optional(),
+    // YYYY-MM-DD (DATE-Spalte) oder null zum Loeschen der Wiedervorlage.
+    nextContactAt: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .nullable()
+      .optional(),
   })
   .strict();
 
@@ -88,4 +107,35 @@ acquisitionRouter.delete("/acquisition-companies/:id", authenticate, async (req,
   }
   broadcast(createEvent(RealtimeEventType.ACQUISITION_COMPANY_UPDATED, company));
   res.status(204).end();
+});
+
+const contactAttemptSchema = z
+  .object({
+    outcome: z.enum(["NOT_REACHED", "SPOKE_TO_STAFF", "SPOKE_TO_OWNER", "CALLBACK_REQUESTED", "OTHER"]),
+    note: z.string().trim().min(1).max(1000).optional(),
+  })
+  .strict();
+
+acquisitionRouter.get("/acquisition-companies/:id/contact-attempts", authenticate, async (req, res) => {
+  const id = parseCompanyId(req);
+  if (id === undefined) {
+    res.status(400).json({ error: "Ungueltige Unternehmens-ID" });
+    return;
+  }
+  res.json(await listContactAttempts(id));
+});
+
+acquisitionRouter.post("/acquisition-companies/:id/contact-attempts", authenticate, async (req, res) => {
+  const id = parseCompanyId(req);
+  if (id === undefined) {
+    res.status(400).json({ error: "Ungueltige Unternehmens-ID" });
+    return;
+  }
+  const parsed = contactAttemptSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Ungueltige Eingabe", details: parsed.error.flatten() });
+    return;
+  }
+  const attempt = await createContactAttempt(id, parsed.data);
+  res.status(201).json(attempt);
 });

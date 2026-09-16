@@ -28,6 +28,13 @@ export interface AcquisitionCompany {
   planningDone: boolean;
   implementationDone: boolean;
   live: boolean;
+  phone: string | null;
+  email: string | null;
+  websiteUrl: string | null;
+  category: string | null;
+  address: string | null;
+  openingHours: string | null;
+  nextContactAt: string | null;
   // Abgeleitet, nicht gespeichert - siehe Backend acquisition.repository.ts.
   stage: AcquisitionStage;
   createdAt: string;
@@ -36,6 +43,11 @@ export interface AcquisitionCompany {
 
 export interface CreateAcquisitionCompanyInput {
   name: string;
+  phone?: string;
+  email?: string;
+  websiteUrl?: string;
+  category?: string;
+  address?: string;
 }
 
 export interface UpdateAcquisitionCompanyInput {
@@ -48,4 +60,25 @@ export interface UpdateAcquisitionCompanyInput {
   planningDone?: boolean | undefined;
   implementationDone?: boolean | undefined;
   live?: boolean | undefined;
+  phone?: string | null | undefined;
+  email?: string | null | undefined;
+  websiteUrl?: string | null | undefined;
+  category?: string | null | undefined;
+  address?: string | null | undefined;
+  nextContactAt?: string | null | undefined;
+}
+
+export type ContactAttemptOutcome = "NOT_REACHED" | "SPOKE_TO_STAFF" | "SPOKE_TO_OWNER" | "CALLBACK_REQUESTED" | "OTHER";
+
+export interface AcquisitionContactAttempt {
+  id: number;
+  companyId: number;
+  outcome: ContactAttemptOutcome;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface CreateContactAttemptInput {
+  outcome: ContactAttemptOutcome;
+  note?: string;
 }
