@@ -80,18 +80,6 @@ function toWhatsAppLink(phone: string): string {
   return `https://wa.me/${normalized}?text=${message}`;
 }
 
-function todayDateString(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function NextContactBadge({ nextContactAt }: { nextContactAt: string | null }) {
-  if (!nextContactAt) return null;
-  const today = todayDateString();
-  if (nextContactAt < today) return <Chip size="small" color="error" label="Überfällig" />;
-  if (nextContactAt === today) return <Chip size="small" color="warning" label="Heute" />;
-  return null;
-}
-
 function ContactHistory({ companyId }: { companyId: number }) {
   const attemptsQuery = useContactAttempts(companyId);
   const createAttempt = useCreateContactAttempt(companyId);
@@ -193,7 +181,6 @@ function ActiveCompanyCard({
             {company.category && <Chip size="small" variant="outlined" label={company.category} />}
           </Stack>
           <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", flexShrink: 0 }}>
-            <NextContactBadge nextContactAt={company.nextContactAt} />
             {company.stage === "DONE" && <Chip size="small" color="success" label="Fertig" />}
             <Tooltip title="Loeschen">
               <IconButton size="small" onClick={onDelete}>
@@ -249,16 +236,6 @@ function ActiveCompanyCard({
             )}
           </Stack>
         )}
-
-        <TextField
-          size="small"
-          type="date"
-          label="Nächster Kontakt am"
-          value={company.nextContactAt ?? ""}
-          onChange={(e) => onUpdate({ nextContactAt: e.target.value || null })}
-          slotProps={{ inputLabel: { shrink: true } }}
-          sx={{ mt: 1.5, maxWidth: 220 }}
-        />
 
         <Stack sx={{ mt: 1.5 }}>
           <FormControlLabel
@@ -383,13 +360,6 @@ function OutcomeListItem({ company, onUndo, onDelete }: { company: AcquisitionCo
   );
 }
 
-// Sortierschluessel fuer die Wiedervorlage: ueberfaellig/heute zuerst, dann
-// aufsteigend nach Datum, Eintraege ohne Datum ganz am Ende (Nutzerwunsch
-// "damit nichts durcheinander geraet").
-function contactSortKey(company: AcquisitionCompany): string {
-  return company.nextContactAt ?? "9999-12-31";
-}
-
 export function Acquisition() {
   const companiesQuery = useAcquisitionCompanies();
   const createCompany = useCreateAcquisitionCompany();
@@ -404,7 +374,7 @@ export function Acquisition() {
     const query = search.trim().toLowerCase();
     const filtered = query ? companies.filter((c) => c.name.toLowerCase().includes(query)) : companies;
     return {
-      active: filtered.filter((c) => c.stage !== "NO_WEBSITE").sort((a, b) => contactSortKey(a).localeCompare(contactSortKey(b))),
+      active: filtered.filter((c) => c.stage !== "NO_WEBSITE"),
       noWebsite: filtered.filter((c) => c.stage === "NO_WEBSITE"),
     };
   }, [companiesQuery.data, search]);

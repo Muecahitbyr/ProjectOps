@@ -38,8 +38,6 @@ export interface AcquisitionCompany {
   address: string | null;
   // Rohes JSON vom Scraper - siehe customer-finder.types.ts ScrapedLead.
   openingHours: string | null;
-  // Wiedervorlage - YYYY-MM-DD, DB-DATE-Spalte (analog todos.dueDate).
-  nextContactAt: string | null;
   // Abgeleitet, nicht gespeichert - siehe acquisition.repository.ts.
   stage: AcquisitionStage;
   createdAt: string;
@@ -71,7 +69,6 @@ export interface UpdateAcquisitionCompanyInput {
   websiteUrl?: string | null | undefined;
   category?: string | null | undefined;
   address?: string | null | undefined;
-  nextContactAt?: string | null | undefined;
 }
 
 export type ContactAttemptOutcome = "NOT_REACHED" | "SPOKE_TO_STAFF" | "SPOKE_TO_OWNER" | "CALLBACK_REQUESTED" | "OTHER";

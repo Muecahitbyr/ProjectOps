@@ -26,7 +26,6 @@ interface AcquisitionCompanyRow {
   category: string | null;
   address: string | null;
   opening_hours: string | null;
-  next_contact_at: string | null;
   created_at: string | Date;
   updated_at: string | Date;
 }
@@ -82,7 +81,6 @@ function mapRow(row: AcquisitionCompanyRow): AcquisitionCompany {
     category: row.category,
     address: row.address,
     openingHours: row.opening_hours,
-    nextContactAt: row.next_contact_at,
     stage: deriveStage(row),
     createdAt: toIsoString(row.created_at),
     updatedAt: toIsoString(row.updated_at),
@@ -99,7 +97,7 @@ function mapContactAttemptRow(row: ContactAttemptRow): AcquisitionContactAttempt
   };
 }
 
-const COLUMNS = `id, name, website_built, called, wants_website, website_sent, confirmed_after_viewing, planning_done, implementation_done, live, phone, email, website_url, category, address, opening_hours, next_contact_at, created_at, updated_at`;
+const COLUMNS = `id, name, website_built, called, wants_website, website_sent, confirmed_after_viewing, planning_done, implementation_done, live, phone, email, website_url, category, address, opening_hours, created_at, updated_at`;
 const CONTACT_ATTEMPT_COLUMNS = `id, company_id, outcome, note, created_at`;
 
 export async function listAcquisitionCompanies(): Promise<AcquisitionCompany[]> {
@@ -248,10 +246,6 @@ export async function updateAcquisitionCompany(id: number, rawInput: UpdateAcqui
   if (input.address !== undefined) {
     values.push(input.address);
     sets.push(`address = $${values.length}`);
-  }
-  if (input.nextContactAt !== undefined) {
-    values.push(input.nextContactAt);
-    sets.push(`next_contact_at = $${values.length}`);
   }
   if (sets.length === 0) {
     return getAcquisitionCompanyById(id);

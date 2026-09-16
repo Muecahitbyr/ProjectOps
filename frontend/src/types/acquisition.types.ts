@@ -34,7 +34,6 @@ export interface AcquisitionCompany {
   category: string | null;
   address: string | null;
   openingHours: string | null;
-  nextContactAt: string | null;
   // Abgeleitet, nicht gespeichert - siehe Backend acquisition.repository.ts.
   stage: AcquisitionStage;
   createdAt: string;
@@ -65,7 +64,6 @@ export interface UpdateAcquisitionCompanyInput {
   websiteUrl?: string | null | undefined;
   category?: string | null | undefined;
   address?: string | null | undefined;
-  nextContactAt?: string | null | undefined;
 }
 
 export type ContactAttemptOutcome = "NOT_REACHED" | "SPOKE_TO_STAFF" | "SPOKE_TO_OWNER" | "CALLBACK_REQUESTED" | "OTHER";

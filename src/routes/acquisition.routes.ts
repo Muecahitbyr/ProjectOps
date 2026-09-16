@@ -67,12 +67,6 @@ const updateSchema = z
     websiteUrl: z.string().trim().max(500).nullable().optional(),
     category: z.string().trim().max(200).nullable().optional(),
     address: z.string().trim().max(500).nullable().optional(),
-    // YYYY-MM-DD (DATE-Spalte) oder null zum Loeschen der Wiedervorlage.
-    nextContactAt: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .nullable()
-      .optional(),
   })
   .strict();
 

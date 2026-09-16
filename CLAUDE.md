@@ -137,10 +137,11 @@ self-contained enterprise feature area. Standing rules across phases:
 - **Akquise** (Kunden-Pipeline + Mini-CRM, eigene Sidebar-Seite): `src/db/acquisition.repository.ts`,
   `frontend/src/pages/Acquisition.tsx`. Feste 6-Schritt-Pipeline (`stage` abgeleitet, nicht
   gespeichert, siehe `deriveStage()`) + Mini-CRM-Erweiterung (migration `0075`): Kontaktdaten
-  (`phone`/`email`/`websiteUrl`/`category`/`address`/`openingHours`), `nextContactAt`
-  (Wiedervorlage, ueberfaellige/heutige Eintraege werden oben sortiert/farblich markiert) und
+  (`phone`/`email`/`websiteUrl`/`category`/`address`/`openingHours`) und
   `acquisition_contact_attempts` (strukturierter Anruf-/Kontaktverlauf, eigene Tabelle statt
-  Freitext-Feld).
+  Freitext-Feld). Ein `nextContactAt`-Wiedervorlagefeld wurde in migration `0075` ergaenzt und
+  in `0077` gleich wieder entfernt (Nutzerwunsch) - Öffnungszeiten (siehe unten) decken das
+  eigentliche Bedürfnis besser ab.
 - **Kunden Finden** (Lead-Gen via externem Google-Maps-Scraper, eigene Sidebar-Seite):
   `src/core/customer-finder-scraper.ts` (Scraper-API-Client, Nominatim-Geocoding, CSV-Parser -
   Spalten per Name gesucht, nicht Position, robust gegen Scraper-Versionswechsel),
@@ -156,6 +157,8 @@ self-contained enterprise feature area. Standing rules across phases:
   `frontend/src/utils/openingHours.ts` (Parsing + "jetzt geoeffnet?"-Live-Berechnung via
   Europe/Berlin-Zeit) + `frontend/src/components/common/OpeningHoursIndicator.tsx`
   (wiederverwendete Anzeige-Komponente, genutzt in Acquisition.tsx UND CustomerFinder.tsx).
+  Klick auf die Heute-Zeile oeffnet ein Popover mit der ganzen Woche (Nutzerwunsch - bewusst
+  Klick statt Hover-Tooltip, damit es auf dem Handy funktioniert).
 - Nisan (Gaesteliste Verlobung, eigene Sidebar-Seite): `src/db/nisan.repository.ts`,
   `frontend/src/pages/Nisan.tsx`. Zwei feste Listen (Host-Enum), Status CONFIRMED/MAYBE
   ("Fix dabei"/"Eingeladen"), Loeschen fragt per `window.confirm()` nach (kein Custom-Dialog

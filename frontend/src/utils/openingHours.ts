@@ -58,8 +58,14 @@ export function formatTodayRanges(ranges: string[]): string {
   return ranges.join(", ");
 }
 
-// Fuer eine Tooltip/Detailansicht - alle 7 Tage in fester Reihenfolge,
-// unabhaengig von der Reihenfolge im JSON.
-export function formatFullWeek(hours: OpeningHoursMap): string[] {
-  return GERMAN_DAYS.filter((day) => hours[day] !== undefined).map((day) => `${day}: ${formatTodayRanges(hours[day]!)}`);
+export interface WeekDayHours {
+  day: string;
+  text: string;
+}
+
+// Fuer die Wochenansicht (Klick-Popover) - alle 7 Tage in fester
+// Reihenfolge, unabhaengig von der Reihenfolge im JSON. Tag getrennt vom
+// Text zurueckgegeben, damit die Anzeige den heutigen Tag hervorheben kann.
+export function formatFullWeek(hours: OpeningHoursMap): WeekDayHours[] {
+  return GERMAN_DAYS.filter((day) => hours[day] !== undefined).map((day) => ({ day, text: formatTodayRanges(hours[day]!) }));
 }
