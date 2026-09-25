@@ -22,10 +22,8 @@ import CircularProgress from "@mui/material/CircularProgress";
 import CheckOutlinedIcon from "@mui/icons-material/CheckOutlined";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
-import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
 import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
-import StarOutlinedIcon from "@mui/icons-material/StarOutlined";
 import { PageContainer } from "../components/layout/PageContainer";
 import { LoadingState } from "../components/common/LoadingState";
 import { ErrorState } from "../components/common/ErrorState";
@@ -82,26 +80,10 @@ function ResultCard({ result, onAccept, onReject }: { result: CustomerFinderResu
         </Stack>
 
         <Stack spacing={0.5} sx={{ mt: 1 }}>
-          {(result.rating !== null || result.reviewCount !== null) && (
-            <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-              <StarOutlinedIcon fontSize="inherit" color="warning" />
-              <Typography variant="body2">
-                {result.rating ?? "–"} {result.reviewCount !== null ? `(${result.reviewCount})` : ""}
-              </Typography>
-            </Stack>
-          )}
           {result.phone && (
             <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
               <PhoneOutlinedIcon fontSize="inherit" color="action" />
               <Typography variant="body2">{result.phone}</Typography>
-            </Stack>
-          )}
-          {result.email && (
-            <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-              <EmailOutlinedIcon fontSize="inherit" color="action" />
-              <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
-                {result.email}
-              </Typography>
             </Stack>
           )}
           {result.website && (
@@ -135,7 +117,6 @@ export function CustomerFinder() {
   const [keywords, setKeywords] = useState("");
   const [city, setCity] = useState("");
   const [noWebsite, setNoWebsite] = useState(false);
-  const [maxReviewCount, setMaxReviewCount] = useState("");
 
   const currentJob = useMemo(() => jobsQuery.data?.[0], [jobsQuery.data]);
   const jobRunning = currentJob?.status === "PENDING" || currentJob?.status === "WORKING";
@@ -146,7 +127,6 @@ export function CustomerFinder() {
       keywords: keywords.trim(),
       city: city.trim(),
       filterNoWebsite: noWebsite,
-      filterMaxReviewCount: maxReviewCount.trim() ? Number(maxReviewCount) : undefined,
     });
   }
 
@@ -188,15 +168,6 @@ export function CustomerFinder() {
             <FormControlLabel
               control={<Checkbox checked={noWebsite} onChange={(e) => setNoWebsite(e.target.checked)} />}
               label="Nur ohne Website"
-            />
-            <TextField
-              size="small"
-              type="number"
-              label="Nur unter X Bewertungen"
-              placeholder="optional"
-              value={maxReviewCount}
-              onChange={(e) => setMaxReviewCount(e.target.value)}
-              sx={{ maxWidth: 220 }}
             />
           </Stack>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: { sm: "center" } }}>
@@ -260,12 +231,9 @@ export function CustomerFinder() {
                     <TableRow>
                       <TableCell>Name</TableCell>
                       <TableCell>Telefon</TableCell>
-                      <TableCell>Email</TableCell>
                       <TableCell>Website</TableCell>
                       <TableCell>Kategorie</TableCell>
                       <TableCell>Adresse</TableCell>
-                      <TableCell>Bewertung</TableCell>
-                      <TableCell>Anzahl</TableCell>
                       <TableCell>Öffnungszeiten</TableCell>
                       <TableCell align="right">Aktionen</TableCell>
                     </TableRow>
@@ -275,12 +243,9 @@ export function CustomerFinder() {
                       <TableRow key={result.id} hover>
                         <TableCell>{result.name}</TableCell>
                         <TableCell>{result.phone ?? "–"}</TableCell>
-                        <TableCell>{result.email ?? "–"}</TableCell>
                         <TableCell>{result.website ?? "–"}</TableCell>
                         <TableCell>{result.category ?? "–"}</TableCell>
                         <TableCell>{result.address ?? "–"}</TableCell>
-                        <TableCell>{result.rating ?? "–"}</TableCell>
-                        <TableCell>{result.reviewCount ?? "–"}</TableCell>
                         <TableCell>{result.openingHours ? <OpeningHoursIndicator openingHours={result.openingHours} /> : "–"}</TableCell>
                         <TableCell align="right">
                           <Tooltip title="Zu Akquise übernehmen">

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import {
   createCustomerFinderJob,
+  createCustomerFinderResults,
   deleteCustomerFinderResult,
   getCustomerFinderResultById,
   listCustomerFinderJobs,
@@ -13,7 +14,8 @@ import { authenticate } from "../middleware/authenticate";
 import { notFoundError } from "../core/app-error";
 import { broadcast } from "../realtime/websocket.server";
 import { createEvent, RealtimeEventType } from "../realtime/events";
-import { createScraperJob, geocodeCity } from "../core/customer-finder-scraper";
+import { extractLeadRows, geocodeCity, runScraperSearch } from "../core/customer-finder-scraper";
+import { logger } from "../core/logger";
 
 // "Kunden Finden" (eigene Sidebar-Seite, Nutzerwunsch) - dieselbe "Shared
 // Ops Console"-Konvention wie /todos, /acquisition-companies, /nisan-guests:
@@ -46,35 +48,47 @@ customerFinderRouter.post("/customer-finder/jobs", authenticate, async (req, res
     return;
   }
 
-  // Job-Zeile IMMER zuerst anlegen (auch bevor Geocoding/Scraper-Aufruf
-  // versucht wird) - sonst verschwindet ein Fehlversuch spurlos statt als
-  // FAILED mit Grund sichtbar zu sein (Nutzerwunsch, siehe auch Frontend-
-  // Fehleranzeige in CustomerFinder.tsx).
+  // Job-Zeile IMMER zuerst anlegen (auch bevor Geocoding/Suche versucht wird) -
+  // sonst verschwindet ein Fehlversuch spurlos statt als FAILED mit Grund
+  // sichtbar zu sein (Nutzerwunsch, siehe auch Frontend-Fehleranzeige in
+  // CustomerFinder.tsx).
   let job = await createCustomerFinderJob(parsed.data);
 
-  const geo = await geocodeCity(parsed.data.city);
-  if (!geo) {
-    const failed = await updateCustomerFinderJob(job.id, { status: "FAILED", errorMessage: "Stadt konnte nicht gefunden werden" });
-    if (failed) job = failed;
-    broadcast(createEvent(RealtimeEventType.CUSTOMER_FINDER_JOB_STATUS_CHANGED, job));
-    res.status(201).json(job);
-    return;
-  }
-
+  // Fast Mode des Scrapers antwortet in wenigen Sekunden - die Suche laeuft
+  // daher synchron im Request, der Job ist bei der Antwort bereits DONE/
+  // FAILED (kein Polling-Loop mehr noetig, siehe customer-finder-scraper.ts).
+  const startedAt = Date.now();
   try {
-    const scraperJobId = await createScraperJob({
+    const geo = await geocodeCity(parsed.data.city);
+    const geocodedAt = Date.now();
+    if (!geo) {
+      throw new Error("Stadt konnte nicht gefunden werden");
+    }
+    const csv = await runScraperSearch({
       keywords: `${parsed.data.keywords} in ${parsed.data.city}`,
       lat: geo.lat,
       lon: geo.lon,
-      // Bei "Nur ohne Website" ist Email-Extraktion reine Verschwendung
-      // (siehe Kommentar in customer-finder-scraper.ts) - deutlich
-      // schnellerer Job.
-      email: !parsed.data.filterNoWebsite,
     });
-    const updated = await updateCustomerFinderJob(job.id, { scraperJobId, status: "WORKING" });
-    if (updated) job = updated;
+    const scrapedAt = Date.now();
+    const leads = extractLeadRows(csv, {
+      noWebsite: parsed.data.filterNoWebsite ?? false,
+      maxReviewCount: parsed.data.filterMaxReviewCount ?? null,
+    });
+    await createCustomerFinderResults(job.id, leads);
+    const done = await updateCustomerFinderJob(job.id, { status: "DONE", resultCount: leads.length });
+    if (done) job = done;
+    if (leads.length > 0) broadcast(createEvent(RealtimeEventType.CUSTOMER_FINDER_RESULT_ADDED, { jobId: job.id }));
+    // Zeitaufteilung, damit sich Langsamkeit im Log einer Phase zuordnen laesst.
+    logger.info("Kunden-Finden-Suche abgeschlossen", {
+      jobId: job.id,
+      resultCount: leads.length,
+      geocodeMs: geocodedAt - startedAt,
+      scraperMs: scrapedAt - geocodedAt,
+      totalMs: Date.now() - startedAt,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unbekannter Fehler";
+    logger.error("Kunden-Finden-Suche fehlgeschlagen", { jobId: job.id, error: message });
     const failed = await updateCustomerFinderJob(job.id, { status: "FAILED", errorMessage: message });
     if (failed) job = failed;
   }

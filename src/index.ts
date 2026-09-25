@@ -65,7 +65,6 @@ import { pool } from "./db/pool";
 import { syncProjects } from "./db/projects.repository";
 import { closeRealtimeServer, initRealtimeServer } from "./realtime/websocket.server";
 import { startTodoDigest, stopTodoDigest } from "./core/todo-digest";
-import { startCustomerFinderPolling, stopCustomerFinderPolling } from "./core/customer-finder-poller";
 import { getLocalAgentId, markLocalAgentOffline } from "./core/local-agent";
 import { getMonitoringAgentById } from "./db/monitoring-agents.repository";
 
@@ -178,13 +177,11 @@ async function main(): Promise<void> {
   const scheduler = new Scheduler(monitorService, checkIntervalMs);
   scheduler.start();
   startTodoDigest();
-  startCustomerFinderPolling();
 
   const shutdown = async (): Promise<void> => {
     logger.info("ProjectOps Backend wird beendet");
     scheduler.stop();
     stopTodoDigest();
-    stopCustomerFinderPolling();
     // Echtes AGENT_OFFLINE-Signal statt nur auf den Heartbeat-Timeout zu
     // warten (Phase 13 Teil 1) - Broadcast VOR closeRealtimeServer(), sonst
     // erreicht das Event keinen Client mehr.

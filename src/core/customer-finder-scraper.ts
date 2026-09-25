@@ -12,15 +12,35 @@ const SCRAPER_BASE_URL = process.env.SCRAPER_BASE_URL ?? "http://localhost:8080"
 
 // Scraper-API-Konstanten (siehe .claude/skills/google-maps-scraper/SKILL.md
 // im Kit-Repo, verifiziert gegen den Go-Quellcode von gosom/google-maps-scraper
-// web/job.go + web/web.go): depth 5 = Nutzerempfehlung fuer den Start
-// ("start at depth 5"), max_time in SEKUNDEN (die API multipliziert intern
-// mit time.Second), email:true ist im Kit bewusst Standard (Emails sind das
-// wichtigste Lead-Feld).
+// web/job.go + web/web.go). max_time in SEKUNDEN (die API multipliziert intern
+// mit time.Second).
+//
+// FAST MODE (Nutzerwunsch 2026-09-24: Ergebnisse in Sekunden statt Minuten):
+// fast_mode:true nutzt reine HTTP-Requests statt eines Playwright-Browsers -
+// dadurch keine Browser-Hänger mehr (siehe Kommentar zu v1.15.0 in
+// docker-compose.production.yml) und Antwort in wenigen Sekunden. Preis:
+// max. 21 Treffer pro Suche (nach Entfernung sortiert), nur Basisfelder
+// (Name, Adresse, Telefon, Website) - KEINE E-Mail-Extraktion; Bewertungen/
+// Oeffnungszeiten je nach Scraper-Version evtl. leer (extractLeadRows()
+// sucht Spalten per Namen und liefert dann null). Laut Upstream-Doku Beta.
+// Braucht lat/lon + zoom + radius, depth/email werden ignoriert.
 const SCRAPER_LANG = "de";
 const SCRAPER_ZOOM = 15;
 const SCRAPER_RADIUS_METERS = 10_000;
-const SCRAPER_DEPTH = 5;
-const SCRAPER_MAX_TIME_SECONDS = 300;
+// max_time ist in der Web-API ein hartes Zeitlimit fuer den ganzen Job (Context-
+// Timeout im Web-Runner, siehe webrunner.go) - der Fast Mode braucht auf der
+// Kommandozeile ~1-2s. Ein knappes Limit deckelt die Wartezeit, falls der Job
+// nicht von selbst zurueckkehrt; der Status wird auch bei Erreichen des
+// Limits auf "ok" gesetzt (die bis dahin gefundenen Treffer bleiben erhalten).
+const SCRAPER_MAX_TIME_SECONDS = 20;
+// Pflichtfeld der Web-API (Validate(): "missing depth"), wird im Fast Mode
+// nicht ausgewertet.
+const SCRAPER_DEPTH = 1;
+// Wie lange die Suche im Request auf den Scraper wartet, bevor sie als
+// Zeitueberschreitung abbricht (Fast Mode braucht typischerweise wenige
+// Sekunden).
+const SEARCH_POLL_INTERVAL_MS = 300;
+const SEARCH_TIMEOUT_MS = 45_000;
 
 export type ScraperJobStatus = "pending" | "working" | "ok" | "failed";
 
@@ -34,7 +54,15 @@ interface GeocodeResult {
 // Verfahren, das scripts/scrape.py im Kit-Repo fuer "--city" nutzt. Kein
 // User-Agent mit persoenlichen Daten - Nominatim verlangt lediglich einen
 // identifizierenden Header, keinen Klarnamen/keine Kontaktadresse.
+// Stadt -> Koordinaten aendern sich nicht - Treffer werden im Prozessspeicher
+// gemerkt, damit wiederholte Suchen in derselben Stadt den (bei Nominatim
+// teils langsamen) Geocoding-Roundtrip sparen. Nur Treffer, keine Fehlschlaege.
+const geocodeCache = new Map<string, GeocodeResult>();
+
 export async function geocodeCity(city: string): Promise<GeocodeResult | null> {
+  const cacheKey = city.trim().toLowerCase();
+  const cached = geocodeCache.get(cacheKey);
+  if (cached) return cached;
   const url = `https://nominatim.openstreetmap.org/search?${new URLSearchParams({ format: "json", limit: "1", q: city })}`;
   const response = await fetch(url, { headers: { "User-Agent": "ProjectOps-CustomerFinder/1.0" } });
   if (!response.ok) {
@@ -43,21 +71,15 @@ export async function geocodeCity(city: string): Promise<GeocodeResult | null> {
   }
   const hits = (await response.json()) as Array<{ lat: string; lon: string }>;
   if (hits.length === 0) return null;
-  return { lat: hits[0]!.lat, lon: hits[0]!.lon };
+  const result = { lat: hits[0]!.lat, lon: hits[0]!.lon };
+  geocodeCache.set(cacheKey, result);
+  return result;
 }
 
 interface CreateScraperJobParams {
   keywords: string;
   lat: string;
   lon: string;
-  // Email-Extraktion besucht pro Treffer dessen Website - das kostet den
-  // mit Abstand meisten Job-Zeit. Bei "Nur ohne Website" ist das reine
-  // Verschwendung: Treffer ohne Website haben nichts zu besuchen, und
-  // Treffer MIT Website werden von diesem Filter sowieso verworfen (siehe
-  // extractLeadRows()) - deren Emails wuerden also fuer nichts geladen.
-  // Der Aufrufer (customer-finder.routes.ts) setzt dies daher auf
-  // !filterNoWebsite.
-  email: boolean;
 }
 
 // Erstellt den Job beim Scraper - gibt dessen UUID zurueck (Antwort ist
@@ -73,10 +95,9 @@ export async function createScraperJob(params: CreateScraperJobParams): Promise<
       zoom: SCRAPER_ZOOM,
       lat: params.lat,
       lon: params.lon,
-      fast_mode: false,
+      fast_mode: true,
       radius: SCRAPER_RADIUS_METERS,
       depth: SCRAPER_DEPTH,
-      email: params.email,
       max_time: SCRAPER_MAX_TIME_SECONDS,
     }),
   });
@@ -105,6 +126,22 @@ export async function downloadScraperResultsCsv(scraperJobId: string): Promise<s
     throw new Error(`Scraper-CSV-Download fehlgeschlagen (${response.status})`);
   }
   return response.text();
+}
+
+// Startet die Suche beim Scraper und wartet (Polling im 300-ms-Takt) bis
+// zum Ergebnis - gibt die rohe CSV zurueck. Wirft bei Scraper-Fehler oder
+// Zeitueberschreitung.
+export async function runScraperSearch(params: CreateScraperJobParams): Promise<string> {
+  const scraperJobId = await createScraperJob(params);
+  const deadline = Date.now() + SEARCH_TIMEOUT_MS;
+
+  while (Date.now() < deadline) {
+    const status = await getScraperJobStatus(scraperJobId);
+    if (status === "ok") return downloadScraperResultsCsv(scraperJobId);
+    if (status === "failed") throw new Error("Scraper-Job fehlgeschlagen");
+    await new Promise((resolve) => setTimeout(resolve, SEARCH_POLL_INTERVAL_MS));
+  }
+  throw new Error(`Zeitueberschreitung: Scraper lieferte nach ${SEARCH_TIMEOUT_MS / 1000}s kein Ergebnis`);
 }
 
 // Minimaler RFC4180-CSV-Parser (kein Package fuer diesen einen Anwendungsfall

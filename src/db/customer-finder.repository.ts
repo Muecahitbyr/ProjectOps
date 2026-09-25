@@ -86,15 +86,6 @@ export async function listCustomerFinderJobs(): Promise<CustomerFinderJob[]> {
   return rows.map(mapJobRow);
 }
 
-// Fuer den Poller (customer-finder-poller.ts) - alle Jobs, die noch beim
-// Scraper aktiv sein koennten und daher gepollt werden muessen.
-export async function listActiveCustomerFinderJobs(): Promise<CustomerFinderJob[]> {
-  const { rows } = await pool.query<CustomerFinderJobRow>(
-    `SELECT ${JOB_COLUMNS} FROM customer_finder_jobs WHERE status IN ('PENDING', 'WORKING') ORDER BY created_at ASC`,
-  );
-  return rows.map(mapJobRow);
-}
-
 export async function createCustomerFinderJob(input: CreateCustomerFinderJobInput): Promise<CustomerFinderJob> {
   const { rows } = await pool.query<CustomerFinderJobRow>(
     `INSERT INTO customer_finder_jobs (keywords, city, filter_no_website, filter_max_review_count)
@@ -105,7 +96,6 @@ export async function createCustomerFinderJob(input: CreateCustomerFinderJobInpu
 }
 
 interface UpdateCustomerFinderJobInput {
-  scraperJobId?: string;
   status?: CustomerFinderJobStatus;
   resultCount?: number;
   errorMessage?: string | null;
@@ -115,10 +105,6 @@ export async function updateCustomerFinderJob(id: number, input: UpdateCustomerF
   const sets: string[] = [];
   const values: unknown[] = [];
 
-  if (input.scraperJobId !== undefined) {
-    values.push(input.scraperJobId);
-    sets.push(`scraper_job_id = $${values.length}`);
-  }
   if (input.status !== undefined) {
     values.push(input.status);
     sets.push(`status = $${values.length}`);
@@ -160,9 +146,8 @@ export async function getCustomerFinderResultById(id: number): Promise<CustomerF
   return rows[0] ? mapResultRow(rows[0]) : undefined;
 }
 
-// Bulk-Insert der aus der Scraper-CSV extrahierten, bereits gefilterten
-// Leads (siehe customer-finder-poller.ts) - eine Query statt einer Query pro
-// Zeile.
+// Bulk-Insert der bereits gefilterten Scraper-Treffer (siehe
+// customer-finder-scraper.ts: extractLeadRows()) - eine Query statt einer Query pro Zeile.
 export async function createCustomerFinderResults(jobId: number, leads: ScrapedLead[]): Promise<CustomerFinderResult[]> {
   if (leads.length === 0) return [];
 

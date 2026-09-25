@@ -144,13 +144,20 @@ self-contained enterprise feature area. Standing rules across phases:
   eigentliche Bedürfnis besser ab.
 - **Kunden Finden** (Lead-Gen via externem Google-Maps-Scraper, eigene Sidebar-Seite):
   `src/core/customer-finder-scraper.ts` (Scraper-API-Client, Nominatim-Geocoding, CSV-Parser -
-  Spalten per Name gesucht, nicht Position, robust gegen Scraper-Versionswechsel),
-  `src/core/customer-finder-poller.ts` (Polling-Loop, der Scraper hat keine Webhooks). Scraper-
-  Image `gosom/google-maps-scraper` — **`v1.15.0` ist kaputt** (gepinnter Playwright-Treiber
-  vom CDN entfernt, Jobs haengen ewig bei `working` fest, live diagnostiziert 2026-09-15/16),
-  mindestens `v1.18.0` verwenden (`docker-compose.production.yml`). Accept-Flow uebertraegt
-  ALLE Kontaktfelder (inkl. `openingHours`) nach `acquisition_companies` mit `websiteBuilt:true`
-  (Nutzerwunsch) — nicht nur den Namen, sonst fehlen Telefon/Öffnungszeiten in der Akquise.
+  Spalten per Name gesucht, nicht Position, robust gegen Scraper-Versionswechsel). Seit
+  2026-09-24 **Fast Mode** (`fast_mode:true`, Nutzerwunsch: Ergebnisse in Sekunden statt
+  Minuten): laeuft OHNE Playwright-Browser, max. 21 Treffer/Suche, nur Basisfelder, keine
+  E-Mails, laut Upstream Beta. Die Suche laeuft SYNCHRON im `POST /customer-finder/jobs`-Request
+  (`runScraperSearch()` pollt den Scraper im Sekundentakt, Timeout 60s) - Job ist bei der
+  Antwort schon DONE/FAILED, es gibt keinen Poller mehr. `customer_finder_jobs.scraper_job_id`
+  wird nicht mehr gesetzt. Fuer Bewertungen/Oeffnungszeiten muessten ggf. Spalten im Fast-Mode-CSV
+  geprueft werden (fehlen sie, sind die Felder null). Scraper-Image `gosom/google-maps-scraper`
+  — **`v1.15.0` ist kaputt** (gepinnter Playwright-Treiber vom CDN entfernt, Jobs haengen ewig
+  bei `working`, live diagnostiziert 2026-09-15/16), mindestens `v1.18.0` verwenden
+  (`docker-compose.production.yml`). Getestet nur gegen einen Mock-Scraper (Docker lief lokal
+  nicht) - der echte Fast-Mode-Lauf steht noch aus. Accept-Flow uebertraegt ALLE Kontaktfelder
+  (inkl. `openingHours`) nach `acquisition_companies` mit `websiteBuilt:true` (Nutzerwunsch) —
+  nicht nur den Namen, sonst fehlen Telefon/Öffnungszeiten in der Akquise.
 - **Öffnungszeiten-Anzeige** ("wann kann ich ueberhaupt anrufen"): rohes JSON vom Scraper
   (deutsche Wochentage, Zeitraeume mit En-Dash "–") wird unverarbeitet als TEXT gespeichert
   (`opening_hours`-Spalte, migration `0076`) und erst im Frontend geparst/interpretiert -
