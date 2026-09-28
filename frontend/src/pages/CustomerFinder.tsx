@@ -152,6 +152,13 @@ export function CustomerFinder() {
   }
 
   const results = resultsQuery.data ?? [];
+  // "Nur ohne Website" filterte bisher nur, was eine NEUE Suche importiert
+  // (extractLeadRows in customer-finder-scraper.ts) - bereits vorhandene
+  // Treffer MIT Website aus frueheren, ungefilterten Suchen blieben in der
+  // Liste stehen und wirkten wie "der Filter greift nicht" (Nutzerfeedback
+  // 2026-09-28). Die Checkbox filtert daher jetzt zusaetzlich direkt die
+  // angezeigte Liste (Client-seitig, kein Re-Fetch noetig).
+  const filteredResults = noWebsite ? results.filter((r) => !r.website) : results;
 
   return (
     <PageContainer title="Kunden Finden">
@@ -210,17 +217,24 @@ export function CustomerFinder() {
       </Card>
 
       <Card variant="outlined">
-        <CardHeader title={`Ergebnisse (${results.length})`} slotProps={{ title: { variant: "h6" } }} />
+        <CardHeader
+          title={`Ergebnisse (${filteredResults.length}${noWebsite && filteredResults.length !== results.length ? ` von ${results.length}` : ""})`}
+          slotProps={{ title: { variant: "h6" } }}
+        />
         <CardContent sx={{ pt: 0 }}>
           {results.length === 0 ? (
             <Typography variant="body2" color="text.secondary">
               Noch keine Ergebnisse. Starte oben eine Suche.
             </Typography>
+          ) : filteredResults.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              Keine Treffer ohne Website in der aktuellen Liste. Häkchen "Nur ohne Website" entfernen, um alle {results.length} Treffer zu sehen.
+            </Typography>
           ) : (
             <>
               {/* Handy/Tablet: Kartenliste statt breiter Tabelle. */}
               <Stack spacing={1.5} sx={{ display: { xs: "flex", md: "none" } }}>
-                {results.map((result) => (
+                {filteredResults.map((result) => (
                   <ResultCard
                     key={result.id}
                     result={result}
@@ -245,7 +259,7 @@ export function CustomerFinder() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {results.map((result) => (
+                    {filteredResults.map((result) => (
                       <TableRow key={result.id} hover>
                         <TableCell>{result.name}</TableCell>
                         <TableCell>{result.phone ?? "–"}</TableCell>
