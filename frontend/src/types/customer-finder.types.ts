@@ -16,6 +16,12 @@ export interface CustomerFinderJob {
   errorMessage: string | null;
   createdAt: string;
   updatedAt: string;
+  // Nur in der direkten Antwort von POST /customer-finder/jobs gefuellt (nicht
+  // persistiert, GET /customer-finder/jobs liefert sie nicht) - Anzahl der
+  // diesmal gefundenen, aber schon vorhandenen (nicht als "neu" gezaehlten)
+  // Treffer. Erklaert im Frontend eine niedrige/0 resultCount trotz echter
+  // Treffer (Nutzerfeedback 2026-09-28).
+  duplicateCount?: number;
 }
 
 export interface CreateCustomerFinderJobInput {

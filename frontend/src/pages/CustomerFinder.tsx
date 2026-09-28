@@ -118,7 +118,12 @@ export function CustomerFinder() {
   const [city, setCity] = useState("");
   const [noWebsite, setNoWebsite] = useState(false);
 
-  const currentJob = useMemo(() => jobsQuery.data?.[0], [jobsQuery.data]);
+  // createJob.data (direkte Antwort der letzten Suche) hat Vorrang vor
+  // jobsQuery.data - nur dort steckt duplicateCount drin (nicht persistiert,
+  // siehe customer-finder.routes.ts), das die Chip-Anzeige unten braucht, um
+  // "0 neue Ergebnisse trotz echter Treffer" zu erklaeren statt "keine
+  // gefunden" wirken zu lassen (Nutzerfeedback 2026-09-28).
+  const currentJob = useMemo(() => createJob.data ?? jobsQuery.data?.[0], [createJob.data, jobsQuery.data]);
   const jobRunning = currentJob?.status === "PENDING" || currentJob?.status === "WORKING";
 
   function handleSearch() {
@@ -186,7 +191,8 @@ export function CustomerFinder() {
                 icon={jobRunning ? <CircularProgress size={14} color="inherit" /> : undefined}
                 label={
                   currentJob.status === "DONE"
-                    ? `Fertig: ${currentJob.resultCount} neue${currentJob.resultCount === 1 ? "s" : ""} Ergebnis${currentJob.resultCount === 1 ? "" : "se"}`
+                    ? `Fertig: ${currentJob.resultCount} neue${currentJob.resultCount === 1 ? "s" : ""} Ergebnis${currentJob.resultCount === 1 ? "" : "se"}` +
+                      (currentJob.duplicateCount ? ` (${currentJob.duplicateCount} bereits in der Liste)` : "")
                     : currentJob.status === "FAILED"
                       ? `Fehlgeschlagen${currentJob.errorMessage ? `: ${currentJob.errorMessage}` : ""}`
                       : JOB_STATUS_CONFIG[currentJob.status].label

@@ -53,6 +53,11 @@ customerFinderRouter.post("/customer-finder/jobs", authenticate, async (req, res
   // sichtbar zu sein (Nutzerwunsch, siehe auch Frontend-Fehleranzeige in
   // CustomerFinder.tsx).
   let job = await createCustomerFinderJob(parsed.data);
+  // Nur in der direkten Antwort dieses Requests gefuellt (nicht persistiert,
+  // GET /customer-finder/jobs liefert sie nicht mehr) - erklaert dem Frontend
+  // eine niedrige/0 "neue Ergebnisse"-Zahl: die Treffer waren real, standen
+  // aber schon in der Liste (Nutzerfeedback 2026-09-28, siehe CustomerFinder.tsx).
+  let duplicateCount: number | undefined;
 
   // Fast Mode des Scrapers antwortet in wenigen Sekunden - die Suche laeuft
   // daher synchron im Request, der Job ist bei der Antwort bereits DONE/
@@ -81,6 +86,7 @@ customerFinderRouter.post("/customer-finder/jobs", authenticate, async (req, res
     // tatsaechlich NEU hinzugekommenen Treffer, nicht die vom Scraper
     // gelieferte Rohtrefferzahl.
     const inserted = await createCustomerFinderResults(job.id, leads);
+    duplicateCount = leads.length - inserted.length;
     const done = await updateCustomerFinderJob(job.id, { status: "DONE", resultCount: inserted.length });
     if (done) job = done;
     if (inserted.length > 0) broadcast(createEvent(RealtimeEventType.CUSTOMER_FINDER_RESULT_ADDED, { jobId: job.id }));
@@ -89,7 +95,7 @@ customerFinderRouter.post("/customer-finder/jobs", authenticate, async (req, res
       jobId: job.id,
       scrapedCount: leads.length,
       newResultCount: inserted.length,
-      duplicateCount: leads.length - inserted.length,
+      duplicateCount,
       geocodeMs: geocodedAt - startedAt,
       scraperMs: scrapedAt - geocodedAt,
       totalMs: Date.now() - startedAt,
@@ -102,7 +108,7 @@ customerFinderRouter.post("/customer-finder/jobs", authenticate, async (req, res
   }
 
   broadcast(createEvent(RealtimeEventType.CUSTOMER_FINDER_JOB_STATUS_CHANGED, job));
-  res.status(201).json(job);
+  res.status(201).json(duplicateCount === undefined ? job : { ...job, duplicateCount });
 });
 
 customerFinderRouter.get("/customer-finder/results", authenticate, async (_req, res) => {
