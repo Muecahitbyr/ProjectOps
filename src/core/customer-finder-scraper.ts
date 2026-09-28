@@ -26,7 +26,10 @@ const SCRAPER_BASE_URL = process.env.SCRAPER_BASE_URL ?? "http://localhost:8080"
 // Braucht lat/lon + zoom + radius, depth/email werden ignoriert.
 const SCRAPER_LANG = "de";
 const SCRAPER_ZOOM = 15;
-const SCRAPER_RADIUS_METERS = 10_000;
+// Nutzerwunsch 2026-09-28: bei Stadt-Suche auch Doerfer/Umland mit abdecken
+// (z.B. "Muenchen" soll auch ~20km ausserhalb von Muenchen treffen), nicht
+// nur den Stadtkern - radius ist der Suchradius um die geocodete Stadtmitte.
+const SCRAPER_RADIUS_METERS = 20_000;
 // max_time ist in der Web-API ein hartes Zeitlimit fuer den ganzen Job (Context-
 // Timeout im Web-Runner, siehe webrunner.go) - der Fast Mode braucht auf der
 // Kommandozeile ~1-2s. Ein knappes Limit deckelt die Wartezeit, falls der Job
