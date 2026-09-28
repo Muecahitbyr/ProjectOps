@@ -15,6 +15,7 @@ import { notFoundError } from "../core/app-error";
 import { broadcast } from "../realtime/websocket.server";
 import { createEvent, RealtimeEventType } from "../realtime/events";
 import { extractLeadRows, geocodeCity, runScraperSearch } from "../core/customer-finder-scraper";
+import { filterRelevantLeads } from "../core/customer-finder-relevance";
 import { logger } from "../core/logger";
 
 // "Kunden Finden" (eigene Sidebar-Seite, Nutzerwunsch) - dieselbe "Shared
@@ -58,6 +59,10 @@ customerFinderRouter.post("/customer-finder/jobs", authenticate, async (req, res
   // eine niedrige/0 "neue Ergebnisse"-Zahl: die Treffer waren real, standen
   // aber schon in der Liste (Nutzerfeedback 2026-09-28, siehe CustomerFinder.tsx).
   let duplicateCount: number | undefined;
+  // Ebenfalls nicht persistiert - Anzahl der Treffer, die der generische
+  // Kategorie-Relevanz-Filter als vermutlich branchenfremd verworfen hat
+  // (siehe customer-finder-relevance.ts), fuer Transparenz im Frontend.
+  let relevanceRejectedCount: number | undefined;
 
   // Fast Mode des Scrapers antwortet in wenigen Sekunden - die Suche laeuft
   // daher synchron im Request, der Job ist bei der Antwort bereits DONE/
@@ -79,14 +84,34 @@ customerFinderRouter.post("/customer-finder/jobs", authenticate, async (req, res
       noWebsite: parsed.data.filterNoWebsite ?? false,
       maxReviewCount: parsed.data.filterMaxReviewCount ?? null,
     });
-    // inserted kann kleiner als leads.length sein - createCustomerFinderResults
+    // Pipeline: extractLeadRows() hat bereits normalisiert (CSV -> Lead-
+    // Felder) und Website-/Bewertungsfilter angewandt. Als naechstes ein
+    // generischer Kategorie-Relevanz-Check (siehe customer-finder-
+    // relevance.ts - blockt nur Treffer, die klar einer ANDEREN Branche
+    // zugeordnet werden koennen, z.B. Friseure bei einer Fahrschule-Suche;
+    // bei fehlendem Signal wird bewusst durchgelassen), dann Dedupe gegen
+    // bereits vorhandene Treffer in createCustomerFinderResults() (Reihen-
+    // folge zwischen Relevanz-Check und Dedupe ist ergebnisneutral - beides
+    // unabhaengige Filter auf derselben Liste, hier zuerst Relevanz, um die
+    // DB-Dedupe-Query nicht unnoetig mit sicher irrelevanten Zeilen zu
+    // fuellen).
+    const { relevant: relevantLeads, rejected: irrelevantLeads } = filterRelevantLeads(parsed.data.keywords, leads);
+    relevanceRejectedCount = irrelevantLeads.length;
+    if (irrelevantLeads.length > 0) {
+      logger.info("Kunden-Finden: Treffer als branchenfremd verworfen", {
+        jobId: job.id,
+        searchKeywords: parsed.data.keywords,
+        rejectedNames: irrelevantLeads.map((l) => l.name),
+      });
+    }
+    // inserted kann kleiner als relevantLeads.length sein - createCustomerFinderResults
     // dedupliziert gegen bereits vorhandene Treffer (Name+Adresse), damit ein
     // erneuter Klick auf "Suchen" nicht dieselben Firmen nochmal als "neu"
     // anzeigt (Nutzerfeedback 2026-09-28). resultCount spiegelt daher die
     // tatsaechlich NEU hinzugekommenen Treffer, nicht die vom Scraper
     // gelieferte Rohtrefferzahl.
-    const inserted = await createCustomerFinderResults(job.id, leads);
-    duplicateCount = leads.length - inserted.length;
+    const inserted = await createCustomerFinderResults(job.id, relevantLeads);
+    duplicateCount = relevantLeads.length - inserted.length;
     const done = await updateCustomerFinderJob(job.id, { status: "DONE", resultCount: inserted.length });
     if (done) job = done;
     if (inserted.length > 0) broadcast(createEvent(RealtimeEventType.CUSTOMER_FINDER_RESULT_ADDED, { jobId: job.id }));
@@ -94,6 +119,7 @@ customerFinderRouter.post("/customer-finder/jobs", authenticate, async (req, res
     logger.info("Kunden-Finden-Suche abgeschlossen", {
       jobId: job.id,
       scrapedCount: leads.length,
+      relevanceRejectedCount,
       newResultCount: inserted.length,
       duplicateCount,
       geocodeMs: geocodedAt - startedAt,
@@ -108,11 +134,29 @@ customerFinderRouter.post("/customer-finder/jobs", authenticate, async (req, res
   }
 
   broadcast(createEvent(RealtimeEventType.CUSTOMER_FINDER_JOB_STATUS_CHANGED, job));
-  res.status(201).json(duplicateCount === undefined ? job : { ...job, duplicateCount });
+  const extra = { ...(duplicateCount !== undefined ? { duplicateCount } : {}), ...(relevanceRejectedCount !== undefined ? { relevanceRejectedCount } : {}) };
+  res.status(201).json(Object.keys(extra).length === 0 ? job : { ...job, ...extra });
 });
 
-customerFinderRouter.get("/customer-finder/results", authenticate, async (_req, res) => {
-  res.json(await listCustomerFinderResults());
+const listResultsQuerySchema = z
+  .object({
+    // Beide optional, aber nur gemeinsam sinnvoll (siehe unten) - filtert
+    // auf Treffer aus Jobs mit exakt dieser Branche+Stadt-Kombination.
+    // Ohne beide Parameter: ungefiltert (Abwaertskompatibilitaet/Debug).
+    keywords: z.string().trim().min(1).max(200).optional(),
+    city: z.string().trim().min(1).max(200).optional(),
+  })
+  .strict();
+
+customerFinderRouter.get("/customer-finder/results", authenticate, async (req, res) => {
+  const parsed = listResultsQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Ungueltige Eingabe", details: parsed.error.flatten() });
+    return;
+  }
+  const { keywords, city } = parsed.data;
+  const filter = keywords && city ? { keywords, city } : undefined;
+  res.json(await listCustomerFinderResults(filter));
 });
 
 // Haken: Ergebnis wird nach acquisition_companies uebertragen (analog zum

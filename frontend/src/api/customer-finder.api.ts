@@ -11,8 +11,10 @@ export async function createCustomerFinderJob(input: CreateCustomerFinderJobInpu
   return data;
 }
 
-export async function fetchCustomerFinderResults(): Promise<CustomerFinderResult[]> {
-  const { data } = await apiClient.get<CustomerFinderResult[]>("/api/customer-finder/results");
+// Nach Branche+Stadt gefiltert (siehe customer-finder.routes.ts) - ohne
+// Filter kaeme wieder die alte, global vermischte Liste zurueck.
+export async function fetchCustomerFinderResults(filter: { keywords: string; city: string }): Promise<CustomerFinderResult[]> {
+  const { data } = await apiClient.get<CustomerFinderResult[]>("/api/customer-finder/results", { params: filter });
   return data;
 }
 

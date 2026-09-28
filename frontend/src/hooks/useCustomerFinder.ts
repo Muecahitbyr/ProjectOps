@@ -26,10 +26,14 @@ export function useCreateCustomerFinderJob() {
   });
 }
 
-export function useCustomerFinderResults() {
+// filter=undefined (noch keine Suche committed) -> Query bleibt disabled,
+// zeigt bewusst nichts an statt der alten globalen Liste aller Branchen/
+// Staedte (siehe CustomerFinder.tsx: committedFilter).
+export function useCustomerFinderResults(filter: { keywords: string; city: string } | undefined) {
   return useQuery({
-    queryKey: queryKeys.customerFinderResults,
-    queryFn: fetchCustomerFinderResults,
+    queryKey: queryKeys.customerFinderResults(filter ?? { keywords: "", city: "" }),
+    queryFn: () => fetchCustomerFinderResults(filter!),
+    enabled: filter !== undefined,
   });
 }
 

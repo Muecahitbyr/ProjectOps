@@ -22,6 +22,11 @@ export interface CustomerFinderJob {
   // Treffer. Erklaert im Frontend eine niedrige/0 resultCount trotz echter
   // Treffer (Nutzerfeedback 2026-09-28).
   duplicateCount?: number;
+  // Ebenfalls nur in der direkten POST-Antwort: Anzahl der Treffer, die der
+  // generische Kategorie-Relevanz-Filter (customer-finder-relevance.ts) als
+  // vermutlich branchenfremd verworfen hat (z.B. Friseure bei einer
+  // Fahrschule-Suche).
+  relevanceRejectedCount?: number;
 }
 
 export interface CreateCustomerFinderJobInput {

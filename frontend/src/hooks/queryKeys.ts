@@ -220,7 +220,12 @@ export const queryKeys = {
   acquisitionContactAttempts: (companyId: number) => ["acquisition-companies", companyId, "contact-attempts"] as const,
   // Nisan-Gaesteliste (Verlobung), eigene Sidebar-Seite.
   nisanGuests: ["nisan-guests"] as const,
-  // "Kunden Finden", eigene Sidebar-Seite.
+  // "Kunden Finden", eigene Sidebar-Seite. customerFinderResults ist nach
+  // Branche+Stadt geparametert (Nutzerfeedback 2026-09-28: Ergebnisse
+  // unterschiedlicher Suchen wurden bisher global vermischt angezeigt) -
+  // jede Kombination bekommt ihren eigenen Cache-Eintrag; invalidateQueries
+  // mit dem Praefix ["customer-finder-results"] (siehe useRealtime.ts)
+  // erfasst weiterhin alle Kombinationen zusammen.
   customerFinderJobs: ["customer-finder-jobs"] as const,
-  customerFinderResults: ["customer-finder-results"] as const,
+  customerFinderResults: (filter: { keywords: string; city: string }) => ["customer-finder-results", filter] as const,
 };

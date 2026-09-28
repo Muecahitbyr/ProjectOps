@@ -109,7 +109,6 @@ function ResultCard({ result, onAccept, onReject }: { result: CustomerFinderResu
 
 export function CustomerFinder() {
   const jobsQuery = useCustomerFinderJobs();
-  const resultsQuery = useCustomerFinderResults();
   const createJob = useCreateCustomerFinderJob();
   const acceptResult = useAcceptCustomerFinderResult();
   const rejectResult = useRejectCustomerFinderResult();
@@ -118,24 +117,49 @@ export function CustomerFinder() {
   const [city, setCity] = useState("");
   const [noWebsite, setNoWebsite] = useState(false);
 
+  // Die tatsaechlich zuletzt GESUCHTE Branche+Stadt (nicht der Live-Tipp-
+  // Zustand der Textfelder) - bestimmt, welcher Ergebnis-Cache-Eintrag
+  // angezeigt wird. Aendert sich nur beim Klick auf "Suchen", nicht beim
+  // Tippen, damit die Liste nicht schon waehrend der Eingabe leer aufblitzt.
+  // Hauptursachen-Fix (Nutzerfeedback 2026-09-28): vorher zeigte die Seite
+  // IMMER alle jemals gesammelten Treffer aus JEDER Branche/Stadt zusammen
+  // an ("Fahrschule Kaufbeuren" zeigte alte Friseur-Treffer aus einer
+  // frueheren Suche mit an) - jede Kombination hat jetzt ihren eigenen,
+  // per Query-Key getrennten Cache-Eintrag (siehe queryKeys.ts), und ein
+  // Wechsel der Kombination zeigt sofort NICHT mehr die alte Liste.
+  const [committedFilter, setCommittedFilter] = useState<{ keywords: string; city: string } | undefined>(undefined);
+  const resultsQuery = useCustomerFinderResults(committedFilter);
+
   // createJob.data (direkte Antwort der letzten Suche) hat Vorrang vor
-  // jobsQuery.data - nur dort steckt duplicateCount drin (nicht persistiert,
-  // siehe customer-finder.routes.ts), das die Chip-Anzeige unten braucht, um
-  // "0 neue Ergebnisse trotz echter Treffer" zu erklaeren statt "keine
-  // gefunden" wirken zu lassen (Nutzerfeedback 2026-09-28).
+  // jobsQuery.data - nur dort steckt duplicateCount/relevanceRejectedCount
+  // drin (nicht persistiert, siehe customer-finder.routes.ts), das die
+  // Chip-Anzeige unten braucht, um "0 neue Ergebnisse trotz echter Treffer"
+  // zu erklaeren statt "keine gefunden" wirken zu lassen (Nutzerfeedback
+  // 2026-09-28).
   const currentJob = useMemo(() => createJob.data ?? jobsQuery.data?.[0], [createJob.data, jobsQuery.data]);
-  const jobRunning = currentJob?.status === "PENDING" || currentJob?.status === "WORKING";
+  // createJob.isPending (statt eines Job-Status aus der DB) - die Suche
+  // laeuft synchron im Request (bis zu ~45s, siehe customer-finder-
+  // scraper.ts), ein GET von jobsQuery wuerde den Zwischenstand gar nicht
+  // sehen. Ohne das war der "Suchen"-Button waehrend einer laufenden Suche
+  // NICHT gesperrt (jobRunning haenge am Status des VORIGEN, bereits
+  // abgeschlossenen Jobs) - mehrere schnelle Klicks konnten so parallele
+  // Requests auslösen, deren Antworten in beliebiger Reihenfolge eintreffen
+  // (echte Race Condition, gefunden bei der Analyse 2026-09-28).
+  const jobRunning = createJob.isPending;
 
   function handleSearch() {
-    if (!keywords.trim() || !city.trim()) return;
+    const trimmedKeywords = keywords.trim();
+    const trimmedCity = city.trim();
+    if (!trimmedKeywords || !trimmedCity || createJob.isPending) return;
+    setCommittedFilter({ keywords: trimmedKeywords, city: trimmedCity });
     createJob.mutate({
-      keywords: keywords.trim(),
-      city: city.trim(),
+      keywords: trimmedKeywords,
+      city: trimmedCity,
       filterNoWebsite: noWebsite,
     });
   }
 
-  if (resultsQuery.isLoading || jobsQuery.isLoading) {
+  if (jobsQuery.isLoading) {
     return (
       <PageContainer title="Kunden Finden">
         <LoadingState label="Lade..." />
@@ -151,7 +175,12 @@ export function CustomerFinder() {
     );
   }
 
-  const results = resultsQuery.data ?? [];
+  const results = committedFilter ? (resultsQuery.data ?? []) : [];
+  // createJob.isPending zusaetzlich zu resultsQuery.isLoading: die Suche
+  // laeuft synchron im Request (bis zu ~45s) - ohne das wuerde die (schnelle,
+  // zunaechst leere) GET-Abfrage der neuen Kombination sofort "keine
+  // Ergebnisse" zeigen, WAEHREND die Suche noch laeuft.
+  const resultsLoading = committedFilter !== undefined && (resultsQuery.isLoading || createJob.isPending);
   // "Nur ohne Website" filterte bisher nur, was eine NEUE Suche importiert
   // (extractLeadRows in customer-finder-scraper.ts) - bereits vorhandene
   // Treffer MIT Website aus frueheren, ungefilterten Suchen blieben in der
@@ -199,7 +228,8 @@ export function CustomerFinder() {
                 label={
                   currentJob.status === "DONE"
                     ? `Fertig: ${currentJob.resultCount} neue${currentJob.resultCount === 1 ? "s" : ""} Ergebnis${currentJob.resultCount === 1 ? "" : "se"}` +
-                      (currentJob.duplicateCount ? ` (${currentJob.duplicateCount} bereits in der Liste)` : "")
+                      (currentJob.duplicateCount ? ` (${currentJob.duplicateCount} bereits in der Liste)` : "") +
+                      (currentJob.relevanceRejectedCount ? ` · ${currentJob.relevanceRejectedCount} als branchenfremd verworfen` : "")
                     : currentJob.status === "FAILED"
                       ? `Fehlgeschlagen${currentJob.errorMessage ? `: ${currentJob.errorMessage}` : ""}`
                       : JOB_STATUS_CONFIG[currentJob.status].label
@@ -222,9 +252,15 @@ export function CustomerFinder() {
           slotProps={{ title: { variant: "h6" } }}
         />
         <CardContent sx={{ pt: 0 }}>
-          {results.length === 0 ? (
+          {resultsLoading ? (
+            <LoadingState label="Lade Ergebnisse..." />
+          ) : !committedFilter ? (
             <Typography variant="body2" color="text.secondary">
               Noch keine Ergebnisse. Starte oben eine Suche.
+            </Typography>
+          ) : results.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              Keine (noch offenen) Ergebnisse für „{committedFilter.keywords}" in „{committedFilter.city}".
             </Typography>
           ) : filteredResults.length === 0 ? (
             <Typography variant="body2" color="text.secondary">

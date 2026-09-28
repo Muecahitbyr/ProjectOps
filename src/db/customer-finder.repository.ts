@@ -131,9 +131,35 @@ export async function updateCustomerFinderJob(id: number, input: UpdateCustomerF
   return rows[0] ? mapJobRow(rows[0]) : undefined;
 }
 
-export async function listCustomerFinderResults(): Promise<CustomerFinderResult[]> {
+export interface CustomerFinderResultFilter {
+  keywords: string;
+  city: string;
+}
+
+// Ohne Filter: ALLE jemals gesammelten, noch nicht akzeptierten/verworfenen
+// Treffer (frueheres Verhalten). Mit Filter: nur Treffer aus Jobs mit
+// exakt derselben (normalisierten) Branche+Stadt-Kombination - behebt den
+// Hauptbug (Nutzerfeedback 2026-09-28): die Ergebnisliste zeigte bisher
+// IMMER alle Treffer aus JEDER jemals gestarteten Suche zusammen an, auch
+// von voellig anderen Branchen/Staedten (z.B. Friseur-Treffer blieben nach
+// einer neuen "Fahrschule"-Suche einfach mit in der Liste stehen - siehe
+// customer-finder.routes.ts/CustomerFinder.tsx fuer das Scoping im
+// Frontend). job_id kann NULL sein (siehe deleteCustomerFinderResult/Schema)
+// - solche verwaisten Zeilen kommen dann nur in der ungefilterten Abfrage.
+export async function listCustomerFinderResults(filter?: CustomerFinderResultFilter): Promise<CustomerFinderResult[]> {
+  if (!filter) {
+    const { rows } = await pool.query<CustomerFinderResultRow>(
+      `SELECT ${RESULT_COLUMNS} FROM customer_finder_results ORDER BY created_at DESC`,
+    );
+    return rows.map(mapResultRow);
+  }
   const { rows } = await pool.query<CustomerFinderResultRow>(
-    `SELECT ${RESULT_COLUMNS} FROM customer_finder_results ORDER BY created_at DESC`,
+    `SELECT r.id, r.job_id, r.name, r.phone, r.email, r.website, r.category, r.address, r.rating, r.review_count, r.opening_hours, r.created_at
+     FROM customer_finder_results r
+     JOIN customer_finder_jobs j ON j.id = r.job_id
+     WHERE lower(trim(j.keywords)) = lower(trim($1)) AND lower(trim(j.city)) = lower(trim($2))
+     ORDER BY r.created_at DESC`,
+    [filter.keywords, filter.city],
   );
   return rows.map(mapResultRow);
 }
@@ -160,15 +186,25 @@ function dedupeKey(name: string, address: string | null): string {
 // Treffer: erneutes Klicken auf "Suchen" mit denselben Keywords/derselben
 // Stadt lieferte sonst jedes Mal dieselben Firmen erneut als "neue"
 // Ergebniszeilen (Nutzerfeedback 2026-09-28).
+//
+// Race-sicher per DB-Unique-Index + ON CONFLICT DO NOTHING (Migration 0078)
+// statt eines vorherigen SELECT-dann-INSERT-Checks: der hatte ein TOCTOU-
+// Zeitfenster - zwei nahezu gleichzeitige Suchen (z.B. zwei schnelle Klicks)
+// haetten beide denselben "noch nicht vorhanden"-Zustand gesehen und den
+// Treffer trotzdem doppelt eingefuegt (gefunden bei der Kundenfinder-
+// Vollanalyse 2026-09-28). Intra-Batch-Dedupe zusaetzlich vorneweg, damit
+// ein einzelner INSERT nicht unnoetig mit sich selbst kollidierenden Zeilen
+// arbeitet (fuer DO NOTHING zwar unschaedlich, aber unnoetig).
 export async function createCustomerFinderResults(jobId: number, leads: ScrapedLead[]): Promise<CustomerFinderResult[]> {
   if (leads.length === 0) return [];
 
-  const { rows: existingRows } = await pool.query<{ name: string; address: string | null }>(
-    `SELECT name, address FROM customer_finder_results`,
-  );
-  const existingKeys = new Set(existingRows.map((r) => dedupeKey(r.name, r.address)));
-  const newLeads = leads.filter((lead) => !existingKeys.has(dedupeKey(lead.name, lead.address)));
-  if (newLeads.length === 0) return [];
+  const seenKeys = new Set<string>();
+  const newLeads = leads.filter((lead) => {
+    const key = dedupeKey(lead.name, lead.address);
+    if (seenKeys.has(key)) return false;
+    seenKeys.add(key);
+    return true;
+  });
 
   const values: unknown[] = [];
   const rowsSql = newLeads.map((lead, i) => {
@@ -189,7 +225,10 @@ export async function createCustomerFinderResults(jobId: number, leads: ScrapedL
   });
   const { rows } = await pool.query<CustomerFinderResultRow>(
     `INSERT INTO customer_finder_results (job_id, name, phone, email, website, category, address, rating, review_count, opening_hours)
-     VALUES ${rowsSql.join(", ")} RETURNING ${RESULT_COLUMNS}`,
+     VALUES ${rowsSql.join(", ")}
+     ON CONFLICT (lower(trim(name)), lower(trim(coalesce(address, ''))))
+     DO NOTHING
+     RETURNING ${RESULT_COLUMNS}`,
     values,
   );
   return rows.map(mapResultRow);
