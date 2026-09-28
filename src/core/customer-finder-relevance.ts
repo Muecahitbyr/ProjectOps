@@ -93,12 +93,17 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-// Prueft, ob `keyword` als eigenstaendiges Wort/Phrase in `haystack`
-// vorkommt (nicht nur als Teilstring eines anderen Wortes) - z.B. matcht
-// "bar" NICHT in "Barnsteiner", aber "fahrschule" matcht in "Fahrschule
-// Barnsteiner Mair".
+// Prueft, ob `keyword` als eigenstaendiges Wort ODER als Suffix eines
+// deutschen Kompositums in `haystack` vorkommt. NUR die Wortgrenze NACH dem
+// Keyword wird geprueft, die davor bewusst NICHT: deutsche Komposita haengen
+// das Kernwort meist vorne an (z.B. "Landbäckerei", "Stadtapotheke") - ein
+// Treffer wie "Landbäckerei IHLE Café" bei der Suche "Bäckerei" wurde live
+// getestet faelschlich als branchenfremd verworfen, weil vor "bäckerei" das
+// "d" aus "Land" stand (echter, live gefundener Bug, 2026-09-28). Die
+// Grenze NACH dem Keyword bleibt aber Pflicht - das verhindert weiterhin
+// Treffer wie "bar" in "Barnsteiner" (dort folgt "n", keine Wortgrenze).
 function containsWord(haystack: string, keyword: string): boolean {
-  const pattern = new RegExp(`(^|[^${WORD_CHAR_CLASS}])${escapeRegExp(keyword)}([^${WORD_CHAR_CLASS}]|$)`, "i");
+  const pattern = new RegExp(`${escapeRegExp(keyword)}([^${WORD_CHAR_CLASS}]|$)`, "i");
   return pattern.test(haystack);
 }
 
