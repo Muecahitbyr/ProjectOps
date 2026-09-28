@@ -186,7 +186,7 @@ export function CustomerFinder() {
                 icon={jobRunning ? <CircularProgress size={14} color="inherit" /> : undefined}
                 label={
                   currentJob.status === "DONE"
-                    ? `Fertig: ${currentJob.resultCount} Ergebnis${currentJob.resultCount === 1 ? "" : "se"}`
+                    ? `Fertig: ${currentJob.resultCount} neue${currentJob.resultCount === 1 ? "s" : ""} Ergebnis${currentJob.resultCount === 1 ? "" : "se"}`
                     : currentJob.status === "FAILED"
                       ? `Fehlgeschlagen${currentJob.errorMessage ? `: ${currentJob.errorMessage}` : ""}`
                       : JOB_STATUS_CONFIG[currentJob.status].label

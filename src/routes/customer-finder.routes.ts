@@ -74,14 +74,22 @@ customerFinderRouter.post("/customer-finder/jobs", authenticate, async (req, res
       noWebsite: parsed.data.filterNoWebsite ?? false,
       maxReviewCount: parsed.data.filterMaxReviewCount ?? null,
     });
-    await createCustomerFinderResults(job.id, leads);
-    const done = await updateCustomerFinderJob(job.id, { status: "DONE", resultCount: leads.length });
+    // inserted kann kleiner als leads.length sein - createCustomerFinderResults
+    // dedupliziert gegen bereits vorhandene Treffer (Name+Adresse), damit ein
+    // erneuter Klick auf "Suchen" nicht dieselben Firmen nochmal als "neu"
+    // anzeigt (Nutzerfeedback 2026-09-28). resultCount spiegelt daher die
+    // tatsaechlich NEU hinzugekommenen Treffer, nicht die vom Scraper
+    // gelieferte Rohtrefferzahl.
+    const inserted = await createCustomerFinderResults(job.id, leads);
+    const done = await updateCustomerFinderJob(job.id, { status: "DONE", resultCount: inserted.length });
     if (done) job = done;
-    if (leads.length > 0) broadcast(createEvent(RealtimeEventType.CUSTOMER_FINDER_RESULT_ADDED, { jobId: job.id }));
+    if (inserted.length > 0) broadcast(createEvent(RealtimeEventType.CUSTOMER_FINDER_RESULT_ADDED, { jobId: job.id }));
     // Zeitaufteilung, damit sich Langsamkeit im Log einer Phase zuordnen laesst.
     logger.info("Kunden-Finden-Suche abgeschlossen", {
       jobId: job.id,
-      resultCount: leads.length,
+      scrapedCount: leads.length,
+      newResultCount: inserted.length,
+      duplicateCount: leads.length - inserted.length,
       geocodeMs: geocodedAt - startedAt,
       scraperMs: scrapedAt - geocodedAt,
       totalMs: Date.now() - startedAt,

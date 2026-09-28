@@ -146,13 +146,32 @@ export async function getCustomerFinderResultById(id: number): Promise<CustomerF
   return rows[0] ? mapResultRow(rows[0]) : undefined;
 }
 
+// Normalisierter Dedupe-Schluessel fuer einen Treffer: der Scraper liefert
+// keine stabile ID (place_id/cid werden bewusst nicht gespeichert, siehe
+// extractLeadRows()), daher Name+Adresse klein geschrieben/getrimmt als
+// bester verfuegbarer Ersatz.
+function dedupeKey(name: string, address: string | null): string {
+  return `${name.trim().toLowerCase()}|${(address ?? "").trim().toLowerCase()}`;
+}
+
 // Bulk-Insert der bereits gefilterten Scraper-Treffer (siehe
 // customer-finder-scraper.ts: extractLeadRows()) - eine Query statt einer Query pro Zeile.
+// Dedupliziert gegen bereits vorhandene (noch nicht akzeptierte/verworfene)
+// Treffer: erneutes Klicken auf "Suchen" mit denselben Keywords/derselben
+// Stadt lieferte sonst jedes Mal dieselben Firmen erneut als "neue"
+// Ergebniszeilen (Nutzerfeedback 2026-09-28).
 export async function createCustomerFinderResults(jobId: number, leads: ScrapedLead[]): Promise<CustomerFinderResult[]> {
   if (leads.length === 0) return [];
 
+  const { rows: existingRows } = await pool.query<{ name: string; address: string | null }>(
+    `SELECT name, address FROM customer_finder_results`,
+  );
+  const existingKeys = new Set(existingRows.map((r) => dedupeKey(r.name, r.address)));
+  const newLeads = leads.filter((lead) => !existingKeys.has(dedupeKey(lead.name, lead.address)));
+  if (newLeads.length === 0) return [];
+
   const values: unknown[] = [];
-  const rowsSql = leads.map((lead, i) => {
+  const rowsSql = newLeads.map((lead, i) => {
     const base = i * 10;
     values.push(
       jobId,
