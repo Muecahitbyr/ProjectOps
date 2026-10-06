@@ -2,7 +2,6 @@ import { Router } from "express";
 import { z } from "zod";
 import {
   createSession,
-  createUserWithPassword,
   getActiveSessionByTokenHash,
   getUserByEmailWithPassword,
   revokeSessionByTokenHash,
@@ -71,44 +70,51 @@ const registerSchema = z.object({
   password: passwordSchema,
 });
 
-// Auftragspunkt 1 "Echtes Auth-System". Registrierung deckt zwei reale
-// Faelle ab, die beide ohne Fake-Daten auskommen muessen:
-//   (a) eine komplett neue E-Mail -> neuer Benutzer mit Passwort.
-//   (b) eine bereits (z.B. von einem Projekt-Owner per POST /api/users
-//       eingeladene) bestehende E-Mail OHNE Passwort -> das Konto wird durch
-//       Setzen des ersten Passworts "beansprucht" (kein Duplikat, keine
-//       verwaisten project_members-Zeilen). Existiert bereits ein Passwort,
-//       ist das ein Konflikt (jemand versucht, ein fremdes Konto zu
-//       uebernehmen).
+// Auftragspunkt 1 "Echtes Auth-System". Nur noch EIN Fall wird hier
+// akzeptiert: eine bereits (von einem Platform-Admin per POST /api/users,
+// authorizeGlobalAdmin()-geschuetzt) eingeladene E-Mail OHNE Passwort wird
+// durch Setzen des ersten Passworts "beansprucht" (kein Duplikat, keine
+// verwaisten project_members-Zeilen).
+//
+// Oeffentliche Registrierung fuer eine VOELLIG neue, nicht eingeladene
+// E-Mail ist seit 2026-10-07 geschlossen - echter, live gefundener
+// Sicherheitsfund (Nutzeranfrage "wie sichern wir den Zugriff ab"): dieser
+// Endpunkt war zuvor fuer JEDEN im Internet offen und legte sofort ein
+// voll funktionsfaehiges Konto an. Todos/Akquise/Nisan/Kunden-Finden/
+// Projekte haben bewusst KEIN projektbezogenes RBAC ("jeder angemeldete
+// Nutzer dieses internen Einzelbetreiber-Tools sieht/verwaltet alle
+// Eintraege", siehe deren Routen-Kommentare) - das setzt voraus, dass
+// "angemeldet" tatsaechlich "vom Betreiber eingeladen" bedeutet, was durch
+// offene Selbstregistrierung ausgehebelt wurde. Live verifiziert: eine
+// frisch selbst-registrierte Testkennung ohne jede Einladung konnte Todos,
+// echte Kundendaten (Akquise), die private Gaesteliste (Nisan) und
+// (sobald vorhanden) Admin-Logins unter "Projekte" lesen.
 authRouter.post("/auth/register", registerRateLimiter, async (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
     throw new AppError(400, "VALIDATION_ERROR", "Ungueltige Eingabe", parsed.error.flatten());
   }
 
-  const { name, email, password } = parsed.data;
+  const { email, password } = parsed.data;
   const existing = await getUserByEmailWithPassword(email);
-
-  let userId: string;
-  if (existing) {
-    if (existing.passwordHash) {
-      throw new AppError(409, "CONFLICT", "Ein Benutzer mit dieser E-Mail existiert bereits");
-    }
-    userId = existing.user.id;
-    await setUserPassword(userId, await hashPassword(password));
-  } else {
-    const created = await createUserWithPassword({ name, email, passwordHash: await hashPassword(password) });
-    userId = created.id;
+  if (!existing) {
+    throw new AppError(403, "FORBIDDEN", "Registrierung ist nur fuer eingeladene Konten moeglich");
   }
+  if (existing.passwordHash) {
+    throw new AppError(409, "CONFLICT", "Ein Benutzer mit dieser E-Mail existiert bereits");
+  }
+
+  const userId = existing.user.id;
+  await setUserPassword(userId, await hashPassword(password));
 
   await issueSession(res, userId, req.header("user-agent"));
   const user = await getUserById(userId);
-  logger.info("Benutzer registriert/Konto beansprucht", { userId });
+  logger.info("Konto beansprucht (Einladung)", { userId });
   void recordAuditLog({
     userId,
-    action: existing ? "ACCOUNT_CLAIMED" : "USER_REGISTERED",
+    action: "ACCOUNT_CLAIMED",
     category: "AUTH",
-    message: `${existing ? "Konto beansprucht" : "Registrierung"} (${email})`,
+    message: `Konto beansprucht (${email})`,
     ...(req.ip ? { ipAddress: req.ip } : {}),
   });
   res.status(201).json(user);
