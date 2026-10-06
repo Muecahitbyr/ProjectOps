@@ -1,11 +1,16 @@
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:crypto";
 import { logger } from "./logger";
 
-// Phase 15 Teil 7 "Webhooks" - im Unterschied zu Passwoertern/Refresh-
-// Tokens/Agent-Secrets (Phase 9/14, immer nur gehasht/verglichen) muss ein
-// Webhook-Secret spaeter wieder im Klartext vorliegen, um jede ausgehende
-// Zustellung zu signieren (HMAC-SHA256) - eine echte, umkehrbare
+// Urspruenglich Phase 15 Teil 7 "Webhooks" - im Unterschied zu Passwoertern/
+// Refresh-Tokens/Agent-Secrets (Phase 9/14, immer nur gehasht/verglichen)
+// musste ein Webhook-Secret spaeter wieder im Klartext vorliegen, um jede
+// ausgehende Zustellung zu signieren (HMAC-SHA256) - eine echte, umkehrbare
 // Verschluesselung (AES-256-GCM) ist hier strukturell noetig, kein Hash.
+// Seit 2026-10-07 generisch genutzt fuer jedes Feld mit demselben Bedarf
+// ("verschluesselt speichern, aber auf Wunsch wieder lesbar machen") - z.B.
+// admin_login_password bei "Projekte" (client-projects.repository.ts):
+// Nutzerwunsch war explizit "gesichert, aber ich will es trotzdem einsehen
+// koennen" - kein Hash (irreversibel), echte Verschluesselung.
 //
 // WEBHOOK_SECRET_ENCRYPTION_KEY MUSS in Production gesetzt sein (siehe
 // .env.example) - analog zu JWT_ACCESS_SECRET in config/auth.config.ts:
