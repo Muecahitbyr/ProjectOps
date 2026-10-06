@@ -13,7 +13,11 @@ import { LoadingState } from "./components/common/LoadingState";
 // animierten Menschen sehen" zu reduzieren.
 const Settings = lazy(() => import("./pages/Settings").then((m) => ({ default: m.Settings })));
 const AiOperationsOffice = lazy(() => import("./pages/AiOperationsOffice").then((m) => ({ default: m.AiOperationsOffice })));
-const Todos = lazy(() => import("./pages/Todos").then((m) => ({ default: m.Todos })));
+// "Projekte" (Nutzerwunsch 2026-10-06) ersetzt den bisherigen "Todos"-Nav-
+// Eintrag/Route - Todos.tsx-Quellcode bleibt erhalten (siehe Git-Historie),
+// ist aber nicht mehr verlinkt/geroutet; TodosPanel.tsx (die eigentliche
+// Todo-Logik) wird unveraendert von ClientProjects.tsx weiterverwendet.
+const ClientProjects = lazy(() => import("./pages/ClientProjects").then((m) => ({ default: m.ClientProjects })));
 const Acquisition = lazy(() => import("./pages/Acquisition").then((m) => ({ default: m.Acquisition })));
 const Nisan = lazy(() => import("./pages/Nisan").then((m) => ({ default: m.Nisan })));
 const CustomerFinder = lazy(() => import("./pages/CustomerFinder").then((m) => ({ default: m.CustomerFinder })));
@@ -50,7 +54,7 @@ export default function App() {
                 <Routes>
                   <Route path="/" element={<Navigate to="/ai-office" replace />} />
                   <Route path="/ai-office" element={<AiOperationsOffice />} />
-                  <Route path="/todos" element={<Todos />} />
+                  <Route path="/projects" element={<ClientProjects />} />
                   <Route path="/acquisition" element={<Acquisition />} />
                   <Route path="/nisan" element={<Nisan />} />
                   <Route path="/customer-finder" element={<CustomerFinder />} />

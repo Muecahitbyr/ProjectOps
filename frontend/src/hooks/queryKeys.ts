@@ -220,6 +220,8 @@ export const queryKeys = {
   acquisitionContactAttempts: (companyId: number) => ["acquisition-companies", companyId, "contact-attempts"] as const,
   // Nisan-Gaesteliste (Verlobung), eigene Sidebar-Seite.
   nisanGuests: ["nisan-guests"] as const,
+  // "Projekte" (eigene Sidebar-Seite, Nutzerwunsch 2026-10-06).
+  clientProjects: ["client-projects"] as const,
   // "Kunden Finden", eigene Sidebar-Seite. customerFinderResults ist nach
   // Branche+Stadt geparametert (Nutzerfeedback 2026-09-28: Ergebnisse
   // unterschiedlicher Suchen wurden bisher global vermischt angezeigt) -

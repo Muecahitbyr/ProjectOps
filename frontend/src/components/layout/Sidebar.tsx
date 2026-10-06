@@ -9,7 +9,7 @@ import ListItemText from "@mui/material/ListItemText";
 import Typography from "@mui/material/Typography";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
-import ChecklistOutlinedIcon from "@mui/icons-material/ChecklistOutlined";
+import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
 import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
 import PersonSearchOutlinedIcon from "@mui/icons-material/PersonSearchOutlined";
@@ -23,17 +23,20 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
-// Auf Nutzerwunsch radikal reduziert: nur noch das KI-Buero + Todos +
+// Auf Nutzerwunsch radikal reduziert: nur noch das KI-Buero + Projekte +
 // Akquise + Settings. Alle uebrigen, in frueheren Phasen gebauten Nav-
 // Eintraege (Dashboard, Projects, Incidents, Analytics, SLA Reports,
 // Platform-Admin-Bereiche, ...) wurden entfernt - der Code der jeweiligen
 // Seiten bleibt erhalten (siehe Git-Historie), ist aber bewusst nicht mehr
-// verlinkt/geroutet (siehe App.tsx). Todos und Akquise sind jeweils eigene
-// Nav-Eintraege statt Reiter innerhalb von KI-Buero (Nutzerwunsch, siehe
-// dortiger Kommentar in AiOperationsOffice.tsx).
+// verlinkt/geroutet (siehe App.tsx). "Todos" (eigener Nav-Eintrag statt
+// Reiter innerhalb von KI-Buero, siehe Kommentar in AiOperationsOffice.tsx)
+// ist mit "Projekte" verschmolzen (Nutzerwunsch 2026-10-06): Admin-
+// Zugangsdaten/Notizen je Kundenprojekt UND die bestehende Todo-Verwaltung
+// (TodosPanel.tsx, unveraendert) leben jetzt auf derselben Seite, siehe
+// pages/ClientProjects.tsx.
 const navItems: NavItem[] = [
   { label: "KI-Büro", to: "/ai-office", icon: <AutoAwesomeOutlinedIcon fontSize="small" /> },
-  { label: "Todos", to: "/todos", icon: <ChecklistOutlinedIcon fontSize="small" /> },
+  { label: "Projekte", to: "/projects", icon: <FolderOutlinedIcon fontSize="small" /> },
   { label: "Akquise", to: "/acquisition", icon: <BusinessCenterOutlinedIcon fontSize="small" /> },
   { label: "Nisan", to: "/nisan", icon: <FavoriteBorderOutlinedIcon fontSize="small" /> },
   { label: "Kunden Finden", to: "/customer-finder", icon: <PersonSearchOutlinedIcon fontSize="small" /> },

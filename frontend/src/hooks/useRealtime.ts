@@ -1039,6 +1039,11 @@ export function useRealtime(): UseRealtimeResult {
           break;
         }
 
+        case "CLIENT_PROJECT_UPDATED": {
+          void queryClient.invalidateQueries({ queryKey: ["client-projects"] });
+          break;
+        }
+
         case "CUSTOMER_FINDER_JOB_STATUS_CHANGED": {
           void queryClient.invalidateQueries({ queryKey: ["customer-finder-jobs"] });
           break;

@@ -3,6 +3,7 @@ import type { Todo } from "../types/todo.types";
 import type { AcquisitionCompany } from "../types/acquisition.types";
 import type { NisanGuest } from "../types/nisan.types";
 import type { CustomerFinderJob } from "../types/customer-finder.types";
+import type { ClientProject } from "../types/client-project.types";
 import type { HealthStatus } from "../types/health.types";
 import type { Incident } from "../types/incident.types";
 import type { ProjectHealthSummary } from "../db/dashboard.repository";
@@ -336,6 +337,10 @@ export enum RealtimeEventType {
   // Nisan-Gaesteliste (Verlobung, eigene Sidebar-Seite) - deckt Create/
   // Delete gemeinsam ab, dieselbe Konvention wie ACQUISITION_COMPANY_UPDATED.
   NISAN_GUEST_UPDATED = "NISAN_GUEST_UPDATED",
+  // "Projekte" (eigene Sidebar-Seite, Nutzerwunsch 2026-10-06) - deckt
+  // Create/Update/Delete gemeinsam ab, dieselbe Konvention wie
+  // ACQUISITION_COMPANY_UPDATED/NISAN_GUEST_UPDATED.
+  CLIENT_PROJECT_UPDATED = "CLIENT_PROJECT_UPDATED",
   // "Kunden Finden" (eigene Sidebar-Seite) - Scraper-Job-Statuswechsel
   // (PENDING/WORKING/DONE/FAILED).
   CUSTOMER_FINDER_JOB_STATUS_CHANGED = "CUSTOMER_FINDER_JOB_STATUS_CHANGED",
@@ -706,6 +711,7 @@ export type RealtimeEvent =
   | { type: RealtimeEventType.TODO_UPDATED; timestamp: string; payload: Todo }
   | { type: RealtimeEventType.ACQUISITION_COMPANY_UPDATED; timestamp: string; payload: AcquisitionCompany }
   | { type: RealtimeEventType.NISAN_GUEST_UPDATED; timestamp: string; payload: NisanGuest }
+  | { type: RealtimeEventType.CLIENT_PROJECT_UPDATED; timestamp: string; payload: ClientProject }
   | { type: RealtimeEventType.CUSTOMER_FINDER_JOB_STATUS_CHANGED; timestamp: string; payload: CustomerFinderJob }
   | { type: RealtimeEventType.CUSTOMER_FINDER_RESULT_ADDED; timestamp: string; payload: { jobId: number } };
 
@@ -833,6 +839,7 @@ export function createEvent(type: RealtimeEventType.RESILIENCE_STATUS_CHANGED, p
 export function createEvent(type: RealtimeEventType.TODO_UPDATED, payload: Todo): RealtimeEvent;
 export function createEvent(type: RealtimeEventType.ACQUISITION_COMPANY_UPDATED, payload: AcquisitionCompany): RealtimeEvent;
 export function createEvent(type: RealtimeEventType.NISAN_GUEST_UPDATED, payload: NisanGuest): RealtimeEvent;
+export function createEvent(type: RealtimeEventType.CLIENT_PROJECT_UPDATED, payload: ClientProject): RealtimeEvent;
 export function createEvent(type: RealtimeEventType.CUSTOMER_FINDER_JOB_STATUS_CHANGED, payload: CustomerFinderJob): RealtimeEvent;
 export function createEvent(type: RealtimeEventType.CUSTOMER_FINDER_RESULT_ADDED, payload: { jobId: number }): RealtimeEvent;
 export function createEvent(type: RealtimeEventType, payload: RealtimeEvent["payload"]): RealtimeEvent {
