@@ -10,24 +10,15 @@ export interface LoginInput {
   password: string;
 }
 
-export interface RegisterInput {
-  name: string;
-  email: string;
-  password: string;
-}
-
-// Login/Register setzen die Auth-Cookies serverseitig (httpOnly, siehe
-// backend config/auth.config.ts) - der Response-Body enthaelt bewusst
-// keinen Token, nur das User-Objekt. me() gibt zusaetzlich die
-// Projekt-Mitgliedschaften zurueck (fuer Permission Guards, siehe
-// auth/AuthContext.tsx).
+// Login setzt die Auth-Cookies serverseitig (httpOnly, siehe backend
+// config/auth.config.ts) - der Response-Body enthaelt bewusst keinen
+// Token, nur das User-Objekt. me() gibt zusaetzlich die Projekt-
+// Mitgliedschaften zurueck (fuer Permission Guards, siehe
+// auth/AuthContext.tsx). Keine oeffentliche Registrierung mehr
+// (Nutzerwunsch 2026-10-07: "ich soll der einzige sein") - /auth/register
+// existiert backend-seitig nicht mehr.
 export async function login(input: LoginInput): Promise<User> {
   const { data } = await apiClient.post<User>("/api/auth/login", input);
-  return data;
-}
-
-export async function register(input: RegisterInput): Promise<User> {
-  const { data } = await apiClient.post<User>("/api/auth/register", input);
   return data;
 }
 

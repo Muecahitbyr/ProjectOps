@@ -1,11 +1,12 @@
 import rateLimit from "express-rate-limit";
 
 // Phase 11 Teil 10 "Security" / Phase-10-Abschlussbericht-Empfehlung: schuetzt
-// Login/Registrierung vor Brute-Force- bzw. Enumerations-Versuchen. Zaehlung
-// pro IP im Prozessspeicher (fuer die aktuelle Single-Instance-Deployment,
-// siehe docker-compose.production.yml - bei mehreren Backend-Instanzen
-// bräuchte dies einen gemeinsamen Store, z.B. Redis, aktuell nicht Teil der
-// Architektur).
+// Login vor Brute-Force- bzw. Enumerations-Versuchen (oeffentliche
+// Registrierung gibt es seit 2026-10-07 nicht mehr, siehe routes/auth.routes.ts).
+// Zaehlung pro IP im Prozessspeicher (fuer die aktuelle Single-Instance-
+// Deployment, siehe docker-compose.production.yml - bei mehreren Backend-
+// Instanzen bräuchte dies einen gemeinsamen Store, z.B. Redis, aktuell
+// nicht Teil der Architektur).
 export const loginRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,
@@ -13,16 +14,6 @@ export const loginRateLimiter = rateLimit({
   legacyHeaders: false,
   handler: (_req, res) => {
     res.status(429).json({ error: "Zu viele Anmeldeversuche - bitte spaeter erneut versuchen", code: "RATE_LIMITED" });
-  },
-});
-
-export const registerRateLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  limit: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (_req, res) => {
-    res.status(429).json({ error: "Zu viele Registrierungsversuche - bitte spaeter erneut versuchen", code: "RATE_LIMITED" });
   },
 });
 

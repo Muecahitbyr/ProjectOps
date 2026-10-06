@@ -6,10 +6,9 @@ import {
   getUserByEmailWithPassword,
   revokeSessionByTokenHash,
   rotateSession,
-  setUserPassword,
 } from "../db/auth.repository";
 import { getProjectsForUser, getUserById } from "../db/users.repository";
-import { hashPassword, verifyPassword } from "../auth/password";
+import { verifyPassword } from "../auth/password";
 import { generateRefreshToken, hashRefreshToken, signAccessToken } from "../auth/tokens";
 import {
   ACCESS_TOKEN_COOKIE,
@@ -19,7 +18,7 @@ import {
   REFRESH_TOKEN_TTL_SECONDS,
 } from "../config/auth.config";
 import { authenticate } from "../middleware/authenticate";
-import { loginRateLimiter, registerRateLimiter } from "../middleware/rate-limit";
+import { loginRateLimiter } from "../middleware/rate-limit";
 import { AppError } from "../core/app-error";
 import { logger } from "../core/logger";
 import { recordAuditLog } from "../core/audit-log";
@@ -59,66 +58,22 @@ async function issueSession(res: Response, userId: string, userAgent: string | u
   setAuthCookies(res, accessToken, refreshToken);
 }
 
-const passwordSchema = z
-  .string()
-  .min(8, "Passwort muss mindestens 8 Zeichen lang sein")
-  .max(200);
-
-const registerSchema = z.object({
-  name: z.string().trim().min(1).max(200),
-  email: z.string().trim().email().max(320),
-  password: passwordSchema,
-});
-
-// Auftragspunkt 1 "Echtes Auth-System". Nur noch EIN Fall wird hier
-// akzeptiert: eine bereits (von einem Platform-Admin per POST /api/users,
-// authorizeGlobalAdmin()-geschuetzt) eingeladene E-Mail OHNE Passwort wird
-// durch Setzen des ersten Passworts "beansprucht" (kein Duplikat, keine
-// verwaisten project_members-Zeilen).
-//
-// Oeffentliche Registrierung fuer eine VOELLIG neue, nicht eingeladene
-// E-Mail ist seit 2026-10-07 geschlossen - echter, live gefundener
-// Sicherheitsfund (Nutzeranfrage "wie sichern wir den Zugriff ab"): dieser
-// Endpunkt war zuvor fuer JEDEN im Internet offen und legte sofort ein
-// voll funktionsfaehiges Konto an. Todos/Akquise/Nisan/Kunden-Finden/
-// Projekte haben bewusst KEIN projektbezogenes RBAC ("jeder angemeldete
-// Nutzer dieses internen Einzelbetreiber-Tools sieht/verwaltet alle
-// Eintraege", siehe deren Routen-Kommentare) - das setzt voraus, dass
-// "angemeldet" tatsaechlich "vom Betreiber eingeladen" bedeutet, was durch
-// offene Selbstregistrierung ausgehebelt wurde. Live verifiziert: eine
-// frisch selbst-registrierte Testkennung ohne jede Einladung konnte Todos,
-// echte Kundendaten (Akquise), die private Gaesteliste (Nisan) und
-// (sobald vorhanden) Admin-Logins unter "Projekte" lesen.
-authRouter.post("/auth/register", registerRateLimiter, async (req, res) => {
-  const parsed = registerSchema.safeParse(req.body);
-  if (!parsed.success) {
-    throw new AppError(400, "VALIDATION_ERROR", "Ungueltige Eingabe", parsed.error.flatten());
-  }
-
-  const { email, password } = parsed.data;
-  const existing = await getUserByEmailWithPassword(email);
-  if (!existing) {
-    throw new AppError(403, "FORBIDDEN", "Registrierung ist nur fuer eingeladene Konten moeglich");
-  }
-  if (existing.passwordHash) {
-    throw new AppError(409, "CONFLICT", "Ein Benutzer mit dieser E-Mail existiert bereits");
-  }
-
-  const userId = existing.user.id;
-  await setUserPassword(userId, await hashPassword(password));
-
-  await issueSession(res, userId, req.header("user-agent"));
-  const user = await getUserById(userId);
-  logger.info("Konto beansprucht (Einladung)", { userId });
-  void recordAuditLog({
-    userId,
-    action: "ACCOUNT_CLAIMED",
-    category: "AUTH",
-    message: `Konto beansprucht (${email})`,
-    ...(req.ip ? { ipAddress: req.ip } : {}),
-  });
-  res.status(201).json(user);
-});
+// Oeffentliche Registrierung (vormals /auth/register) ist seit 2026-10-07
+// VOLLSTAENDIG entfernt, nicht nur fuer unbekannte E-Mails gesperrt
+// (Nutzerwunsch: "ich soll der einzige sein") - der Endpunkt existiert
+// nicht mehr, kein Fallback/Invite-Claim-Pfad. Vorgeschichte: zunaechst war
+// der Endpunkt fuer JEDEN im Internet offen und legte sofort ein voll
+// funktionsfaehiges Konto an (echter, live gefundener Sicherheitsfund) -
+// Todos/Akquise/Nisan/Kunden-Finden/Projekte haben bewusst KEIN
+// projektbezogenes RBAC ("jeder angemeldete Nutzer dieses internen
+// Einzelbetreiber-Tools sieht/verwaltet alle Eintraege", siehe deren
+// Routen-Kommentare) - das setzt voraus, dass "angemeldet" tatsaechlich
+// "der Betreiber selbst" bedeutet. Es gibt in Produktion ohnehin nur das
+// eine Konto (test@test.de) - ein zweites Konto anzulegen ist kein
+// vorgesehener Anwendungsfall mehr. Login (unten) bleibt unveraendert;
+// ein neues Passwort fuer das bestehende Konto wird bei Bedarf direkt per
+// SQL/Script gesetzt (setUserPassword() in db/auth.repository.ts bleibt
+// dafuer verfuegbar), nicht ueber einen oeffentlichen Endpunkt.
 
 const loginSchema = z.object({
   email: z.string().trim().email().max(320),

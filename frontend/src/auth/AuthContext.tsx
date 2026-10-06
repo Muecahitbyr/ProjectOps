@@ -4,10 +4,8 @@ import {
   fetchCurrentUser,
   login as loginRequest,
   logout as logoutRequest,
-  register as registerRequest,
   type AuthenticatedUser,
   type LoginInput,
-  type RegisterInput,
 } from "../api/auth.api";
 import { onUnauthorized } from "../api/client";
 import { reconnectRealtime } from "../realtime/realtimeClient";
@@ -21,12 +19,9 @@ export interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (input: LoginInput) => Promise<void>;
-  register: (input: RegisterInput) => Promise<void>;
   logout: () => Promise<void>;
   loginError: string | undefined;
-  registerError: string | undefined;
   isLoginPending: boolean;
-  isRegisterPending: boolean;
   hasProjectRole: (projectId: string, roles: RoleId[]) => boolean;
   isGlobalAdmin: boolean;
 }
@@ -67,14 +62,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const registerMutation = useMutation({
-    mutationFn: registerRequest,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY });
-      reconnectRealtime();
-    },
-  });
-
   const logoutMutation = useMutation({
     mutationFn: logoutRequest,
     onSuccess: () => {
@@ -95,23 +82,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login: async (input) => {
         await loginMutation.mutateAsync(input);
       },
-      register: async (input) => {
-        await registerMutation.mutateAsync(input);
-      },
       logout: async () => {
         await logoutMutation.mutateAsync();
       },
       loginError: loginMutation.error ? extractErrorMessage(loginMutation.error) : undefined,
-      registerError: registerMutation.error ? extractErrorMessage(registerMutation.error) : undefined,
       isLoginPending: loginMutation.isPending,
-      isRegisterPending: registerMutation.isPending,
       hasProjectRole: (projectId, roles) => {
         const membership = projects.find((project) => project.projectId === projectId);
         return membership !== undefined && roles.includes(membership.roleId);
       },
       isGlobalAdmin: projects.some((project) => MANAGE_ROLES.includes(project.roleId)),
     };
-  }, [meQuery.data, meQuery.isLoading, loginMutation, registerMutation, logoutMutation]);
+  }, [meQuery.data, meQuery.isLoading, loginMutation, logoutMutation]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

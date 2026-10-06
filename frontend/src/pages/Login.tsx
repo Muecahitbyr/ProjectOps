@@ -7,8 +7,6 @@ import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Alert from "@mui/material/Alert";
-import Tabs from "@mui/material/Tabs";
-import Tab from "@mui/material/Tab";
 import Stack from "@mui/material/Stack";
 import { useAuth } from "../auth/AuthContext";
 
@@ -16,18 +14,18 @@ interface LocationState {
   from?: Location;
 }
 
-// Auftragspunkt 1 "Echtes Auth-System" - eine Seite fuer Login und
-// Registrierung (Tab-Umschaltung). Registrierung uebernimmt (claimt) auch
-// einen bestehenden, noch passwortlosen users-Datensatz mit derselben
-// E-Mail (siehe backend routes/auth.routes.ts) - so koennen die in Phase
-// 7-9 angelegten Benutzer ohne Datenverlust ein Passwort setzen.
+// Auftragspunkt 1 "Echtes Auth-System" - nur noch Login, keine
+// Selbstregistrierung mehr (Nutzerwunsch 2026-10-07: "Account erstellen
+// raus, ich soll der einzige sein"). Vorgeschichte: zunaechst war
+// /auth/register oeffentlich (jeder konnte sich ein Konto anlegen), dann
+// auf "nur eingeladene E-Mails" eingeschraenkt (echter Sicherheitsfund) -
+// jetzt ist der ganze Registrierungs-Pfad entfernt, siehe backend
+// routes/auth.routes.ts.
 export function Login() {
-  const { isAuthenticated, login, register, loginError, registerError, isLoginPending, isRegisterPending } = useAuth();
+  const { isAuthenticated, login, loginError, isLoginPending } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [tab, setTab] = useState<"login" | "register">("login");
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -39,19 +37,12 @@ export function Login() {
   const handleSubmit = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
     try {
-      if (tab === "login") {
-        await login({ email, password });
-      } else {
-        await register({ name, email, password });
-      }
+      await login({ email, password });
       navigate("/", { replace: true });
     } catch {
-      // Fehler wird bereits ueber loginError/registerError (AuthContext) angezeigt.
+      // Fehler wird bereits ueber loginError (AuthContext) angezeigt.
     }
   };
-
-  const error = tab === "login" ? loginError : registerError;
-  const isPending = tab === "login" ? isLoginPending : isRegisterPending;
 
   return (
     <Box
@@ -73,28 +64,8 @@ export function Login() {
             Monitoring Platform
           </Typography>
 
-          <Tabs
-            value={tab}
-            onChange={(_event, value: "login" | "register") => setTab(value)}
-            sx={{ mb: 3 }}
-            variant="fullWidth"
-          >
-            <Tab value="login" label="Sign in" />
-            <Tab value="register" label="Create account" />
-          </Tabs>
-
           <form onSubmit={(event) => void handleSubmit(event)}>
             <Stack sx={{ gap: 2 }}>
-              {tab === "register" && (
-                <TextField
-                  label="Name"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  required
-                  fullWidth
-                  autoComplete="name"
-                />
-              )}
               <TextField
                 label="Email"
                 type="email"
@@ -111,14 +82,13 @@ export function Login() {
                 onChange={(event) => setPassword(event.target.value)}
                 required
                 fullWidth
-                autoComplete={tab === "login" ? "current-password" : "new-password"}
-                helperText={tab === "register" ? "At least 8 characters" : undefined}
+                autoComplete="current-password"
               />
 
-              {error && <Alert severity="error">{error}</Alert>}
+              {loginError && <Alert severity="error">{loginError}</Alert>}
 
-              <Button type="submit" variant="contained" size="large" disabled={isPending} fullWidth>
-                {tab === "login" ? "Sign in" : "Create account"}
+              <Button type="submit" variant="contained" size="large" disabled={isLoginPending} fullWidth>
+                Sign in
               </Button>
             </Stack>
           </form>

@@ -29,7 +29,8 @@ export function onUnauthorized(listener: UnauthorizedListener): () => void {
   };
 }
 
-const AUTH_ENDPOINTS = ["/api/auth/login", "/api/auth/register", "/api/auth/refresh", "/api/auth/me"];
+// /api/auth/register gibt es seit 2026-10-07 nicht mehr (siehe auth.api.ts).
+const AUTH_ENDPOINTS = ["/api/auth/login", "/api/auth/refresh", "/api/auth/me"];
 
 apiClient.interceptors.response.use(
   (response) => response,
