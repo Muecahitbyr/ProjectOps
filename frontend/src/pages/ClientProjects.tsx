@@ -13,7 +13,8 @@ import Alert from "@mui/material/Alert";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
-import Divider from "@mui/material/Divider";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -168,6 +169,13 @@ function ProjectEditForm({
   );
 }
 
+type ProjectTab = "zugangsdaten" | "notizen" | "todos";
+const PROJECT_TABS: { value: ProjectTab; label: string }[] = [
+  { value: "zugangsdaten", label: "Zugangsdaten" },
+  { value: "notizen", label: "Notizen" },
+  { value: "todos", label: "Todos" },
+];
+
 function ProjectAccordion({
   project,
   onSave,
@@ -179,6 +187,7 @@ function ProjectAccordion({
 }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<ProjectFormState>(() => toForm(project));
+  const [tab, setTab] = useState<ProjectTab>("zugangsdaten");
   const hasCredentials = !!(project.adminLoginUrl || project.adminLoginUsername || project.adminLoginPassword);
 
   function startEditing() {
@@ -228,18 +237,26 @@ function ProjectAccordion({
           <ProjectEditForm form={form} onChange={setForm} onSave={handleSave} onCancel={() => setEditing(false)} saving={false} />
         ) : (
           <Stack spacing={2}>
-            <Stack spacing={1}>
-              <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700 }}>
-                  Zugangsdaten
-                </Typography>
+            <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", borderBottom: 1, borderColor: "divider" }}>
+              <Tabs value={tab} onChange={(_e, value: ProjectTab) => setTab(value)} sx={{ minHeight: 0 }}>
+                {PROJECT_TABS.map((t) => (
+                  <Tab key={t.value} value={t.value} label={t.label} sx={{ minHeight: 0, py: 1 }} />
+                ))}
+              </Tabs>
+              {/* Bearbeiten betrifft Zugangsdaten+Notizen (nicht Todos, die
+                  haben ihre eigene Verwaltung im Todos-Reiter) - deshalb nur
+                  auf diesen beiden Reitern sichtbar statt immer. */}
+              {tab !== "todos" && (
                 <Tooltip title="Bearbeiten">
                   <IconButton size="small" onClick={startEditing}>
                     <EditOutlinedIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
-              </Stack>
-              {hasCredentials ? (
+              )}
+            </Stack>
+
+            {tab === "zugangsdaten" &&
+              (hasCredentials ? (
                 <Stack spacing={0.75}>
                   {project.adminLoginUrl && <CredentialRow label="URL" value={project.adminLoginUrl} isLink />}
                   {project.adminLoginUsername && <CredentialRow label="Benutzername" value={project.adminLoginUsername} />}
@@ -249,17 +266,24 @@ function ProjectAccordion({
                 <Typography variant="body2" color="text.secondary">
                   Keine Zugangsdaten hinterlegt.
                 </Typography>
-              )}
-            </Stack>
-            <Divider />
-            <Stack spacing={0.5}>
-              <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700 }}>
-                Notizen
-              </Typography>
+              ))}
+
+            {tab === "notizen" && (
               <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", color: project.notes ? "text.primary" : "text.secondary" }}>
                 {project.notes || "Keine Notizen."}
               </Typography>
-            </Stack>
+            )}
+
+            {/* fixedCategory=project.name - zeigt nur die Todos dieses
+                Projekts (Nutzerwunsch 2026-10-07: Todos als eigener Reiter
+                JE Projekt statt eines gemeinsamen Blocks unter der
+                Projektliste, siehe TodosPanel.tsx). Bleibt im DOM (nur
+                CSS-versteckt), damit beim Reiterwechsel kein Re-Fetch noetig
+                ist - gleiches Prinzip wie die Handy/Tablet-Darstellung in
+                CustomerFinder.tsx. */}
+            <Box sx={{ display: tab === "todos" ? "block" : "none" }}>
+              <TodosPanel fixedCategory={project.name} />
+            </Box>
           </Stack>
         )}
       </AccordionDetails>
@@ -270,11 +294,15 @@ function ProjectAccordion({
 // "Projekte" (Nutzerwunsch 2026-10-06): ersetzt den bisherigen "Todos"-Nav-
 // Eintrag. Admin-Zugangsdaten + Notizen je Kundenprojekt (neu) UND die
 // bestehende Todo-Verwaltung (TodosPanel.tsx, unveraendert wiederverwendet -
-// "reuse, compose, don't re-engine") auf einer Seite: TodosPanel gruppiert
-// Todos bereits anhand des freien todos.category-Textfelds, hier als
-// "projects"-Prop einfach die Namen dieser neuen Projekte statt der echten
-// ueberwachten ProjectOps-Projekte (die sind seit der Sidebar-Verschlankung
-// kein aktiver Nav-Eintrag mehr, siehe Sidebar.tsx).
+// "reuse, compose, don't re-engine") auf einer Seite. Seit 2026-10-07
+// (Nutzerwunsch: "Todos sollen unter Notizen als eigener Reiter bei den
+// Projekten sein, nicht als grosser Block darunter") haengen die Todos
+// eines Projekts als eigener "Todos"-Reiter direkt IM jeweiligen Projekt
+// (siehe ProjectAccordion/TodosPanel fixedCategory-Modus) statt gesammelt
+// unten auf der Seite. Was unten bleibt: ein Fallback fuer Todos, deren
+// Kategorie zu KEINEM angelegten Projekt passt (TodosPanel excludeCategories-
+// Modus) - sonst wuerden z.B. Alt-Kategorien ohne eigenes Projekt (noch)
+// unsichtbar.
 export function ClientProjects() {
   const projectsQuery = useClientProjects();
   const createProject = useCreateClientProject();
@@ -285,9 +313,7 @@ export function ClientProjects() {
   const [showNewProjectForm, setShowNewProjectForm] = useState(false);
 
   const projects = projectsQuery.data ?? [];
-  // Keine kleine Liste wert, ueber useMemo zu cachen (und projects ist bei
-  // jedem Render ohnehin eine neue Array-Referenz aus projectsQuery.data).
-  const todoProjectOptions = projects.map((p) => ({ id: String(p.id), name: p.name }));
+  const projectNames = projects.map((p) => p.name);
 
   function handleCreate() {
     if (!newProjectForm.name.trim()) return;
@@ -369,7 +395,7 @@ export function ClientProjects() {
         </CardContent>
       </Card>
 
-      <TodosPanel projects={todoProjectOptions} />
+      <TodosPanel panelTitle="Weitere Todos (ohne Projekt)" excludeCategories={projectNames} />
     </PageContainer>
   );
 }

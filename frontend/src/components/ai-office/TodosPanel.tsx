@@ -150,9 +150,14 @@ interface CategoryGroupProps {
   onToggle: (todo: Todo, checked: boolean) => void;
   onDelete: (id: number) => void;
   onReorder: (category: string | null, orderedIds: number[]) => void;
+  // true wenn in einem Projekt-Todos-Reiter eingebettet (siehe
+  // ClientProjects.tsx: fixedCategory) - dort ist die Kategorie (= der
+  // Projektname) schon durch den Reiter-Kontext klar, der farbige Punkt +
+  // Label + Zaehler-Chip waere redundant.
+  hideHeader?: boolean;
 }
 
-function CategoryGroup({ categoryKey, label, openItems, doneItems, onToggle, onDelete, onReorder }: CategoryGroupProps) {
+function CategoryGroup({ categoryKey, label, openItems, doneItems, onToggle, onDelete, onReorder, hideHeader }: CategoryGroupProps) {
   const accent = categoryKey === GENERAL_KEY ? "#9ca3af" : colorForCategory(label);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -170,13 +175,15 @@ function CategoryGroup({ categoryKey, label, openItems, doneItems, onToggle, onD
 
   return (
     <Box>
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1 }}>
-        <Box sx={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: accent, flexShrink: 0 }} />
-        <Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: "0.06em", color: "text.secondary" }}>
-          {label}
-        </Typography>
-        <Chip label={openItems.length + doneItems.length} size="small" sx={{ height: 18, fontSize: "0.65rem" }} />
-      </Stack>
+      {!hideHeader && (
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1 }}>
+          <Box sx={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: accent, flexShrink: 0 }} />
+          <Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: "0.06em", color: "text.secondary" }}>
+            {label}
+          </Typography>
+          <Chip label={openItems.length + doneItems.length} size="small" sx={{ height: 18, fontSize: "0.65rem" }} />
+        </Stack>
+      )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={openItems.map((t) => t.id)} strategy={verticalListSortingStrategy}>
@@ -218,11 +225,37 @@ function CategoryGroup({ categoryKey, label, openItems, doneItems, onToggle, onD
   );
 }
 
-// Todo-Panel unter KI-Buero (eigene Seite/Nav-Eintrag, siehe pages/Todos.tsx).
+// Todo-Panel: entweder als eigene Seite (frueher, siehe pages/Todos.tsx,
+// seit 2026-10-07 nicht mehr geroutet) oder - mit fixedCategory gesetzt -
+// eingebettet im "Todos"-Reiter EINES Projekts auf der neuen "Projekte"-
+// Seite (ClientProjects.tsx, Nutzerwunsch 2026-10-07: Todos sollen nicht
+// mehr als ein grosser, alle Projekte mischender Block unter der
+// Projektliste stehen, sondern als eigener Reiter INNERHALB jedes
+// Projekts). fixedCategory blendet die Kategorie-Auswahl aus (immer der
+// Projektname), filtert auf genau diese Kategorie und faellt die aeussere
+// "Todos"-Card/Ueberschrift weg (der Reiter-Titel uebernimmt das bereits).
 // Deadline ueber einen echten MUI-DatePicker (@mui/x-date-pickers) statt des
 // haesslichen nativen <input type="date">; Reihenfolge per Drag&Drop
 // (@dnd-kit, funktioniert per Maus UND per Touch/Finger) statt Pfeiltasten.
-export function TodosPanel({ projects }: { projects: { id: string; name: string }[] }) {
+export function TodosPanel({
+  projects = [],
+  fixedCategory,
+  excludeCategories,
+  panelTitle,
+}: {
+  projects?: { id: string; name: string }[];
+  fixedCategory?: string;
+  // Fuer den "Weitere Todos (ohne Projekt)"-Bereich unten auf der Projekte-
+  // Seite (ClientProjects.tsx): zeigt alle Todos, deren Kategorie NICHT zu
+  // einem der angelegten Projekte gehoert (inkl. Kategorie-lose "Allgemein"-
+  // Todos) - damit nichts unsichtbar wird, nur weil (noch) kein Projekt mit
+  // genau diesem Namen existiert.
+  excludeCategories?: string[];
+  // Ueberschrift im nicht-eingebetteten Modus (Default "Todos") - z.B.
+  // "Weitere Todos (ohne Projekt)" fuer den excludeCategories-Bereich.
+  // "title" ist bereits der Name des Eingabefelds fuer ein neues Todo.
+  panelTitle?: string;
+}) {
   const todosQuery = useTodos();
   const categoriesQuery = useTodoCategories();
   const createTodo = useCreateTodo();
@@ -241,7 +274,13 @@ export function TodosPanel({ projects }: { projects: { id: string; name: string 
     return [...set].sort((a, b) => a.localeCompare(b));
   }, [categoriesQuery.data, projects]);
 
-  const allTodos = todosQuery.data ?? [];
+  const rawTodos = todosQuery.data ?? [];
+  const allTodos =
+    fixedCategory !== undefined
+      ? rawTodos.filter((t) => t.category === fixedCategory)
+      : excludeCategories
+        ? rawTodos.filter((t) => !excludeCategories.includes(t.category ?? ""))
+        : rawTodos;
   const activeTodos = allTodos.filter((t) => !t.done && !t.needsTesting);
   const doneTodos = allTodos.filter((t) => t.done);
   const testingTodos = allTodos.filter((t) => t.needsTesting && !t.done);
@@ -269,7 +308,11 @@ export function TodosPanel({ projects }: { projects: { id: string; name: string 
   const handleAdd = () => {
     const trimmed = title.trim();
     if (!trimmed) return;
-    createTodo.mutate({ title: trimmed, category: category.trim() || null, dueDate: dueDate ? dueDate.format("YYYY-MM-DD") : null });
+    createTodo.mutate({
+      title: trimmed,
+      category: fixedCategory ?? (category.trim() || null),
+      dueDate: dueDate ? dueDate.format("YYYY-MM-DD") : null,
+    });
     setTitle("");
     setCategory("");
     setDueDate(null);
@@ -293,6 +336,167 @@ export function TodosPanel({ projects }: { projects: { id: string; name: string 
     setPendingTestPrompt(null);
   };
 
+  const embedded = fixedCategory !== undefined;
+
+  // Add-Formular + Liste + "Zu testen" - identisch fuer beide Modi, nur die
+  // umschliessende Chrome (eigenstaendige Seite mit Card/"Todos"-Ueberschrift
+  // vs. eingebettet in einen Projekt-Reiter, siehe `embedded` unten) und die
+  // Kategorie-Auswahl (bei fixedCategory ausgeblendet, siehe handleAdd)
+  // unterscheiden sich.
+  const addForm = (
+    <Stack spacing={1.25} sx={{ mb: 3 }}>
+      <TextField
+        size="small"
+        placeholder="Neues Todo..."
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+        fullWidth
+      />
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
+        {!embedded && (
+          <Autocomplete
+            freeSolo
+            autoHighlight
+            options={categoryOptions}
+            inputValue={category}
+            onInputChange={(_, value) => setCategory(value)}
+            onChange={(_, value) => setCategory(value ?? "")}
+            renderOption={(props, option) => {
+              const { key, ...optionProps } = props;
+              return (
+                <Box key={key} component="li" {...optionProps} sx={{ display: "flex", alignItems: "center", gap: 1.25, py: "10px !important", px: "14px !important" }}>
+                  <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: colorForCategory(option), flexShrink: 0 }} />
+                  <Typography variant="body2">{option}</Typography>
+                </Box>
+              );
+            }}
+            slotProps={{
+              listbox: { sx: { p: 0.5 } },
+              popper: { sx: { minWidth: 220 } },
+            }}
+            renderInput={(params) => (
+              <TextField {...params} size="small" placeholder="Kategorie (optional)" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
+            )}
+            sx={{ flex: "1 1 auto", minWidth: 0 }}
+          />
+        )}
+        <DatePicker
+          label="Erledigen bis"
+          value={dueDate}
+          onChange={(value) => setDueDate(value)}
+          format="DD.MM.YYYY"
+          slotProps={{ textField: { size: "small" } }}
+          sx={{ width: { xs: "100%", sm: 170 }, flexShrink: 0 }}
+        />
+        <Button variant="contained" onClick={handleAdd} disabled={!title.trim() || createTodo.isPending} sx={{ whiteSpace: "nowrap", flexShrink: 0, px: 3 }}>
+          Hinzufügen
+        </Button>
+      </Stack>
+    </Stack>
+  );
+
+  const list = todosQuery.isLoading ? (
+    <LoadingState label="Todos laden..." minHeight={120} />
+  ) : todosQuery.error ? (
+    <ErrorState message={getErrorMessage(todosQuery.error)} onRetry={() => todosQuery.refetch()} minHeight={120} />
+  ) : allTodos.length === 0 ? (
+    <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
+      {embedded ? "Noch keine Todos für dieses Projekt." : "Noch keine Todos angelegt."}
+    </Typography>
+  ) : (
+    <Stack spacing={2.5}>
+      {[...grouped.entries()].map(([key, { open, done }], index) => (
+        <Box key={key}>
+          {index > 0 ? <Divider sx={{ mb: 2.5 }} /> : null}
+          <CategoryGroup
+            categoryKey={key}
+            label={key === GENERAL_KEY ? "Allgemein" : key}
+            openItems={open}
+            doneItems={done}
+            onToggle={handleToggle}
+            onDelete={(id) => deleteTodo.mutate(id)}
+            onReorder={(cat, orderedIds) => reorderTodos.mutate({ category: cat, orderedIds })}
+            hideHeader={embedded}
+          />
+        </Box>
+      ))}
+    </Stack>
+  );
+
+  const testingSection =
+    testingTodos.length > 0 ? (
+      <Card sx={{ borderColor: "#eab308", borderWidth: 1, borderStyle: "solid" }}>
+        <CardHeader
+          title="Zu testen"
+          subheader={`${testingTodos.length} wartet auf Test`}
+          slotProps={{ title: { variant: "h6" } }}
+          sx={{ p: { xs: 2, sm: 3 }, pb: 0 }}
+        />
+        <CardContent sx={{ pt: 0, p: { xs: 2, sm: 3 } }}>
+          <Stack spacing={0.5}>
+            {testingTodos.map((todo) => (
+              <Stack
+                key={todo.id}
+                direction="row"
+                spacing={1}
+                sx={{ alignItems: "center", borderRadius: 2, px: 1, flexWrap: "wrap", "&:hover": { backgroundColor: "action.hover" } }}
+              >
+                <Checkbox size="small" checked={false} onChange={() => updateTodo.mutate({ id: todo.id, input: { done: true } })} />
+                <Typography variant="body2" sx={{ flexGrow: 1, minWidth: 0, overflowWrap: "break-word" }}>
+                  {todo.title}
+                </Typography>
+                {!embedded && (
+                  <Chip
+                    label={todo.category ?? "Allgemein"}
+                    size="small"
+                    sx={{
+                      height: 18,
+                      fontSize: "0.62rem",
+                      backgroundColor: `${colorForCategory(todo.category ?? "Allgemein")}1f`,
+                      color: colorForCategory(todo.category ?? "Allgemein"),
+                      fontWeight: 700,
+                    }}
+                  />
+                )}
+              </Stack>
+            ))}
+          </Stack>
+        </CardContent>
+      </Card>
+    ) : null;
+
+  const testPromptDialog = (
+    <Dialog open={pendingTestPrompt !== null} onClose={() => setPendingTestPrompt(null)} fullWidth maxWidth="xs">
+      <DialogTitle>Muss das getestet werden?</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          {pendingTestPrompt ? `"${pendingTestPrompt.title}"` : ""} — wenn ja, wandert es in den Bereich "Zu testen", statt direkt
+          als erledigt zu gelten.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => resolveTestPrompt(false)}>Nein</Button>
+        <Button onClick={() => resolveTestPrompt(true)} variant="contained">
+          Ja
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+
+  if (embedded) {
+    return (
+      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="de">
+        <Stack spacing={2.5}>
+          {addForm}
+          {list}
+          {testingSection}
+        </Stack>
+        {testPromptDialog}
+      </LocalizationProvider>
+    );
+  }
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="de">
       <Grid container spacing={{ xs: 2, sm: 3 }}>
@@ -300,157 +504,20 @@ export function TodosPanel({ projects }: { projects: { id: string; name: string 
           <Card>
             <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
               <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "baseline", mb: 2, flexWrap: "wrap", rowGap: 0.5 }}>
-                <Typography variant="h3">Todos</Typography>
+                <Typography variant="h3">{panelTitle ?? "Todos"}</Typography>
                 <Typography variant="body2" color="text.secondary">
                   {allTodos.length === 0 ? "Keine Todos" : openCount === 0 ? "Alles erledigt" : `${openCount} offen`}
                 </Typography>
               </Stack>
-
-              <Stack spacing={1.25} sx={{ mb: 3 }}>
-                <TextField
-                  size="small"
-                  placeholder="Neues Todo..."
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-                  fullWidth
-                />
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
-                  <Autocomplete
-                    freeSolo
-                    autoHighlight
-                    options={categoryOptions}
-                    inputValue={category}
-                    onInputChange={(_, value) => setCategory(value)}
-                    onChange={(_, value) => setCategory(value ?? "")}
-                    renderOption={(props, option) => {
-                      const { key, ...optionProps } = props;
-                      return (
-                        <Box key={key} component="li" {...optionProps} sx={{ display: "flex", alignItems: "center", gap: 1.25, py: "10px !important", px: "14px !important" }}>
-                          <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: colorForCategory(option), flexShrink: 0 }} />
-                          <Typography variant="body2">{option}</Typography>
-                        </Box>
-                      );
-                    }}
-                    slotProps={{
-                      listbox: { sx: { p: 0.5 } },
-                      popper: { sx: { minWidth: 220 } },
-                    }}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        size="small"
-                        placeholder="Kategorie (optional)"
-                        onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-                      />
-                    )}
-                    sx={{ flex: "1 1 auto", minWidth: 0 }}
-                  />
-                  <DatePicker
-                    label="Erledigen bis"
-                    value={dueDate}
-                    onChange={(value) => setDueDate(value)}
-                    format="DD.MM.YYYY"
-                    slotProps={{ textField: { size: "small" } }}
-                    sx={{ width: { xs: "100%", sm: 170 }, flexShrink: 0 }}
-                  />
-                  <Button
-                    variant="contained"
-                    onClick={handleAdd}
-                    disabled={!title.trim() || createTodo.isPending}
-                    sx={{ whiteSpace: "nowrap", flexShrink: 0, px: 3 }}
-                  >
-                    Hinzufügen
-                  </Button>
-                </Stack>
-              </Stack>
-
-              {todosQuery.isLoading ? (
-                <LoadingState label="Todos laden..." minHeight={120} />
-              ) : todosQuery.error ? (
-                <ErrorState message={getErrorMessage(todosQuery.error)} onRetry={() => todosQuery.refetch()} minHeight={120} />
-              ) : allTodos.length === 0 ? (
-                <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
-                  Noch keine Todos angelegt.
-                </Typography>
-              ) : (
-                <Stack spacing={2.5}>
-                  {[...grouped.entries()].map(([key, { open, done }], index) => (
-                    <Box key={key}>
-                      {index > 0 ? <Divider sx={{ mb: 2.5 }} /> : null}
-                      <CategoryGroup
-                        categoryKey={key}
-                        label={key === GENERAL_KEY ? "Allgemein" : key}
-                        openItems={open}
-                        doneItems={done}
-                        onToggle={handleToggle}
-                        onDelete={(id) => deleteTodo.mutate(id)}
-                        onReorder={(cat, orderedIds) => reorderTodos.mutate({ category: cat, orderedIds })}
-                      />
-                    </Box>
-                  ))}
-                </Stack>
-              )}
+              {addForm}
+              {list}
             </CardContent>
           </Card>
         </Grid>
 
-        {testingTodos.length > 0 ? (
-          <Grid size={{ xs: 12, md: 8 }}>
-            <Card sx={{ borderColor: "#eab308", borderWidth: 1, borderStyle: "solid" }}>
-              <CardHeader
-                title="Zu testen"
-                subheader={`${testingTodos.length} wartet auf Test`}
-                slotProps={{ title: { variant: "h6" } }}
-                sx={{ p: { xs: 2, sm: 3 }, pb: 0 }}
-              />
-              <CardContent sx={{ pt: 0, p: { xs: 2, sm: 3 } }}>
-                <Stack spacing={0.5}>
-                  {testingTodos.map((todo) => (
-                    <Stack
-                      key={todo.id}
-                      direction="row"
-                      spacing={1}
-                      sx={{ alignItems: "center", borderRadius: 2, px: 1, flexWrap: "wrap", "&:hover": { backgroundColor: "action.hover" } }}
-                    >
-                      <Checkbox size="small" checked={false} onChange={() => updateTodo.mutate({ id: todo.id, input: { done: true } })} />
-                      <Typography variant="body2" sx={{ flexGrow: 1, minWidth: 0, overflowWrap: "break-word" }}>
-                        {todo.title}
-                      </Typography>
-                      <Chip
-                        label={todo.category ?? "Allgemein"}
-                        size="small"
-                        sx={{
-                          height: 18,
-                          fontSize: "0.62rem",
-                          backgroundColor: `${colorForCategory(todo.category ?? "Allgemein")}1f`,
-                          color: colorForCategory(todo.category ?? "Allgemein"),
-                          fontWeight: 700,
-                        }}
-                      />
-                    </Stack>
-                  ))}
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
-        ) : null}
+        {testingSection ? <Grid size={{ xs: 12, md: 8 }}>{testingSection}</Grid> : null}
 
-        <Dialog open={pendingTestPrompt !== null} onClose={() => setPendingTestPrompt(null)} fullWidth maxWidth="xs">
-          <DialogTitle>Muss das getestet werden?</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              {pendingTestPrompt ? `"${pendingTestPrompt.title}"` : ""} — wenn ja, wandert es in den Bereich "Zu testen", statt
-              direkt als erledigt zu gelten.
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => resolveTestPrompt(false)}>Nein</Button>
-            <Button onClick={() => resolveTestPrompt(true)} variant="contained">
-              Ja
-            </Button>
-          </DialogActions>
-        </Dialog>
+        {testPromptDialog}
       </Grid>
     </LocalizationProvider>
   );
