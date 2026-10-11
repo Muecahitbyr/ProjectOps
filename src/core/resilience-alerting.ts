@@ -26,7 +26,15 @@ let lastCheckAt = 0;
 
 // In-Memory statt DB-Spalte - reiner Betriebszustand, siehe Dateikopf.
 // Schluessel: projectId (resilienceStatus ist projektbezogen, Phase 37).
-const lastStatusByProjectId = new Map<string, ResilienceStatus>();
+// Zwei getrennte Maps fuer das Flap-Damping weiter unten:
+// - lastObservedStatusByProjectId: der rohe Status aus JEDEM Tick, auch
+//   unbestaetigten - noetig, um zwei aufeinanderfolgende gleiche
+//   Beobachtungen zu erkennen.
+// - lastReportedStatusByProjectId: der Status, der zuletzt tatsaechlich
+//   gemeldet wurde (Baseline fuer "previous" in der Notification) - wird bei
+//   einer unterdrueckten Verschlechterung bewusst NICHT aktualisiert.
+const lastObservedStatusByProjectId = new Map<string, ResilienceStatus>();
+const lastReportedStatusByProjectId = new Map<string, ResilienceStatus>();
 
 // Auftragspunkt "keine falschen Erholungsmeldungen" - ein Uebergang von/zu
 // UNKNOWN bedeutet "keine Messdaten mehr/wieder vorhanden", NICHT "besser"
@@ -132,18 +140,45 @@ export async function evaluateResilienceAlertsIfDue(): Promise<void> {
       const overview = await buildResilienceOverview({ organizationId: organization.id, hours: RESILIENCE_ALERT_WINDOW_HOURS });
       for (const row of overview.rows) {
         seenProjectIds.add(row.projectId);
-        const previous = lastStatusByProjectId.get(row.projectId);
-        lastStatusByProjectId.set(row.projectId, row.resilienceStatus);
+        const observed = row.resilienceStatus;
+        const previousObserved = lastObservedStatusByProjectId.get(row.projectId);
+        lastObservedStatusByProjectId.set(row.projectId, observed);
+
+        const reported = lastReportedStatusByProjectId.get(row.projectId);
 
         // undefined = allererste Beobachtung dieses Projekts - Baseline
         // setzen, aber KEINEN Uebergang melden (kein Rauschen bei
         // Serverstart/neuem Projekt, identisch zu slo-evaluator.ts's
         // Behandlung von "previousStatus ?? HEALTHY" beim ersten Tick,
         // hier aber explizit statt implizit ueber ein Default).
-        if (previous === undefined) continue;
-        if (!isReportable(previous, row.resilienceStatus)) continue;
+        if (reported === undefined) {
+          lastReportedStatusByProjectId.set(row.projectId, observed);
+          continue;
+        }
+        if (!isReportable(reported, observed)) continue;
 
-        await notifyTransition(row, organization.id, previous);
+        const degrading = RESILIENCE_RANK[observed] > RESILIENCE_RANK[reported];
+
+        // Flap-Damping (Live-Problem 2026-10-11: ca. 10 Push-Benachrichtigungen/
+        // Tag durch einen einzelnen flackernden Check, z.B. gtcc-firestore/
+        // gtcc-firebase - siehe CLAUDE.md). Gleiches Muster wie core/
+        // monitor.ts's Incident-Flap-Damping: eine Verschlechterung gilt erst
+        // als bestaetigt, wenn bereits der VORHERIGE Tick (5 Minuten zuvor)
+        // denselben neuen Status beobachtet hat. lastReportedStatusByProjectId
+        // bleibt dabei bewusst unveraendert, damit der naechste Tick den
+        // Uebergang weiterhin erkennt. Eine Erholung wird dagegen NIE
+        // verzoegert (identisch zu monitor.ts's isRecovered-Handling).
+        if (degrading && previousObserved !== observed) {
+          logger.info("Verschlechterung unterdrueckt (Flap-Damping, noch nicht ueber zwei Ticks bestaetigt)", {
+            projectId: row.projectId,
+            previous: reported,
+            observed,
+          });
+          continue;
+        }
+
+        lastReportedStatusByProjectId.set(row.projectId, observed);
+        await notifyTransition(row, organization.id, reported);
       }
     } catch (err) {
       logger.error("Resilience-Alert-Auswertung fuer Organisation fehlgeschlagen", {
@@ -156,8 +191,11 @@ export async function evaluateResilienceAlertsIfDue(): Promise<void> {
   // Analog zu core/slo-evaluator.ts/core/api-usage-intelligence.ts:
   // geloeschte/nicht mehr sichtbare Projekte aus dem Hysterese-Zustand
   // entfernen, sonst bliebe ein einmal gesetzter Status fuer immer bestehen.
-  for (const projectId of lastStatusByProjectId.keys()) {
-    if (!seenProjectIds.has(projectId)) lastStatusByProjectId.delete(projectId);
+  for (const projectId of lastReportedStatusByProjectId.keys()) {
+    if (!seenProjectIds.has(projectId)) lastReportedStatusByProjectId.delete(projectId);
+  }
+  for (const projectId of lastObservedStatusByProjectId.keys()) {
+    if (!seenProjectIds.has(projectId)) lastObservedStatusByProjectId.delete(projectId);
   }
 
   logger.debug("Resilience-Alert-Auswertung abgeschlossen", { organizationCount: organizations.length, projectCount: seenProjectIds.size });
