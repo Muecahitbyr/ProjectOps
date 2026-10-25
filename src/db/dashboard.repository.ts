@@ -164,6 +164,11 @@ export interface ProjectHealthSummary {
   health: HealthResult;
   checks: ChecksSummary;
   openIncidents: number;
+  // Aus config-JSONB (ProjectConfig.isCustomerProject, siehe
+  // projects.config.ts) - fuer die "KI-Buero"-Gliederung "Meine Projekte"/
+  // "Kundenprojekte" (AiOperationsOffice.tsx). Fehlt das Feld im config-JSON
+  // (bestehende Projekte), gilt false (= "Meine Projekte").
+  isCustomerProject: boolean;
 }
 
 // Phase 16 Auftragspunkt 4 "Tenant Isolation" - optionaler
@@ -174,8 +179,8 @@ export interface ProjectHealthSummary {
 export async function getAllProjectsHealth(organizationId?: string): Promise<ProjectHealthSummary[]> {
   const values: unknown[] = [];
   const where = organizationId ? (values.push(organizationId), `WHERE organization_id = $1`) : "";
-  const { rows: projectRows } = await pool.query<{ id: string; name: string; type: string }>(
-    `SELECT id, name, type FROM projects ${where} ORDER BY name`,
+  const { rows: projectRows } = await pool.query<{ id: string; name: string; type: string; config: { isCustomerProject?: boolean } | null }>(
+    `SELECT id, name, type, config FROM projects ${where} ORDER BY name`,
     values,
   );
 
@@ -196,6 +201,7 @@ export async function getAllProjectsHealth(organizationId?: string): Promise<Pro
       health: computeHealth(statuses),
       checks: summarizeChecks(statuses),
       openIncidents: openIncidentsByProject.get(project.id) ?? 0,
+      isCustomerProject: project.config?.isCustomerProject ?? false,
     };
   });
 }
@@ -206,8 +212,8 @@ export async function getAllProjectsHealth(organizationId?: string): Promise<Pro
 // Projekt gesendet wird und keine Batch-Abfrage ueber alle Projekte
 // braucht.
 export async function getProjectHealth(projectId: string): Promise<ProjectHealthSummary | undefined> {
-  const { rows: projectRows } = await pool.query<{ id: string; name: string; type: string }>(
-    `SELECT id, name, type FROM projects WHERE id = $1`,
+  const { rows: projectRows } = await pool.query<{ id: string; name: string; type: string; config: { isCustomerProject?: boolean } | null }>(
+    `SELECT id, name, type, config FROM projects WHERE id = $1`,
     [projectId],
   );
   const project = projectRows[0];
@@ -230,6 +236,7 @@ export async function getProjectHealth(projectId: string): Promise<ProjectHealth
     health: computeHealth(statuses),
     checks: summarizeChecks(statuses),
     openIncidents: Number(incidentRows[0]?.count ?? 0),
+    isCustomerProject: project.config?.isCustomerProject ?? false,
   };
 }
 

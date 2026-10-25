@@ -96,4 +96,9 @@ export interface ProjectConfig {
   description?: string;
   checks: CheckConfig[];
   techProfile?: ProjectTechProfile;
+  // "KI-Buero"-Gliederung "Meine Projekte"/"Kundenprojekte"
+  // (AiOperationsOffice.tsx) - rein deklarativ, keine eigene Logik. Fehlt das
+  // Feld (bestehende Projekte), gilt ein Projekt als eigenes ("Meine
+  // Projekte"), kein Breaking Change fuer bestehende Eintraege.
+  isCustomerProject?: boolean;
 }

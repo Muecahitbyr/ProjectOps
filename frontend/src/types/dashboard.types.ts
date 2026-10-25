@@ -33,4 +33,5 @@ export interface ProjectHealthSummary {
   health: HealthResult;
   checks: ChecksSummary;
   openIncidents: number;
+  isCustomerProject: boolean;
 }

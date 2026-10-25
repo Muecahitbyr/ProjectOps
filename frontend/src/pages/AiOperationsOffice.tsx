@@ -68,6 +68,15 @@ export function AiOperationsOffice() {
     return map;
   }, [projectsQuery.data]);
 
+  // Echtes isCustomerProject-Flag (ProjectConfig.isCustomerProject, siehe
+  // projects.config.ts) - treibt die "Meine Projekte"/"Kundenprojekte"-
+  // Gliederung unten, dieselbe Quelle wie projectTypeById.
+  const isCustomerById = useMemo(() => {
+    const map = new Map<string, boolean>();
+    for (const project of projectsQuery.data ?? []) map.set(project.id, project.isCustomerProject);
+    return map;
+  }, [projectsQuery.data]);
+
   // Echter Projektname (dashboard/projects) fuer Schreibtisch-Titel/-Kuerzel
   // - dieselbe Quelle wie projectTypeById.
   const projectNameById = useMemo(() => {
@@ -109,15 +118,16 @@ export function AiOperationsOffice() {
     [rulesQuery.data, actionsQuery.data, executionsQuery.data],
   );
 
-  // "Kundenprojekte" bleibt bewusst ehrlich leer: es gibt in den echten
-  // Projektdaten aktuell kein Feld, das ein Projekt als "Kunde" markiert -
-  // alle bestehenden Projekte laufen daher unter "Meine Projekte", nach
-  // echtem project.type (website/mobile-app/api) in Apps/Webseiten sortiert.
+  // "Meine Projekte"/"Kundenprojekte" nach echtem ProjectConfig.
+  // isCustomerProject (siehe projects.config.ts), "Apps"/"Webseiten" nach
+  // echtem project.type - beides aus denselben, bereits bestehenden
+  // /api/dashboard/projects-Daten.
   const agentsWithType: OfficeAgentWithProjectType[] = useMemo(
     () =>
       agents.map((agent) => ({
         ...agent,
         projectType: projectTypeById.get(agent.rule.projectId) === "website" ? "website" : "app",
+        isCustomer: isCustomerById.get(agent.rule.projectId) ?? false,
         projectHealth: projectHealthById.get(agent.rule.projectId) ?? null,
         openIncidents: openIncidentsByProject.get(agent.rule.projectId) ?? [],
         deskId: agent.rule.projectId,
@@ -125,7 +135,7 @@ export function AiOperationsOffice() {
         projectName: projectNameById.get(agent.rule.projectId) ?? agent.rule.projectId,
         groupedRules: [agent],
       })),
-    [agents, projectTypeById, projectHealthById, openIncidentsByProject, projectNameById],
+    [agents, projectTypeById, isCustomerById, projectHealthById, openIncidentsByProject, projectNameById],
   );
 
   // Nutzerwunsch: "ein Schreibtisch pro Projekt" statt "ein Schreibtisch pro

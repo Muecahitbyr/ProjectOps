@@ -222,6 +222,7 @@ export const projects: ProjectConfig[] = [
     name: "praxisoffice.de",
     type: "website",
     description: "Kundenprojekt Alrayes - Frontend auf Cloudflare Workers, Backend/DB auf Railway",
+    isCustomerProject: true,
     checks: [
       { id: "praxisoffice-frontend", type: "http", target: "https://praxisoffice.de", intervalMinutes: 3, enabled: true },
       // /api/health/ready fuehrt eine echte DB-Abfrage aus (Prisma SELECT 1) -

@@ -802,6 +802,9 @@ function WalkerThoughtBubble({ text }: { text: string }) {
 
 export interface OfficeAgentWithProjectType extends AgentSnapshot {
   projectType: "website" | "app";
+  // Echtes ProjectConfig.isCustomerProject (dashboard/projects) - treibt die
+  // "Meine Projekte"/"Kundenprojekte"-Gliederung unten.
+  isCustomer: boolean;
   // Echter Projekt-Zustand (dashboard/projects) - unabhaengig vom
   // Automation-Rule-Status, siehe isProjectBroken()/speechFor() weiter oben.
   projectHealth: { critical: boolean; openIncidents: number } | null;
@@ -832,18 +835,23 @@ interface OfficeFloorSceneProps {
 }
 
 // Das gesamte Buero - EIN durchgehender Raum, gegliedert nach echter
-// Projekt-Zugehoerigkeit: "Meine Projekte" (alle 4 echten Projekte - es gibt
-// aktuell keine als Kunde markierten Projekte in den Daten) und
-// "Kundenprojekte" (bewusst leer statt erfunden), je unterteilt nach echtem
-// project.type (Apps / Webseiten). Reines SVG/CSS, keine neue Library, keine
+// Projekt-Zugehoerigkeit: "Meine Projekte" vs. "Kundenprojekte" nach echtem
+// ProjectConfig.isCustomerProject (projects.config.ts), je unterteilt nach
+// echtem project.type (Apps / Webseiten). Ein Projekt erscheint nur als
+// Schreibtisch, wenn es mindestens eine echte Automation Rule hat (Schreib-
+// tische kommen aus den Rules, nicht direkt aus den Projekten) - ein neues
+// Kundenprojekt braucht also eine echte Rule, sonst bleibt seine Zone leer
+// (kein erfundener Platzhalter). Reines SVG/CSS, keine neue Library, keine
 // Kennzahlen-Kacheln.
 export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelectAgent }: OfficeFloorSceneProps) {
   const projectOrder: string[] = [];
   for (const a of agents) if (!projectOrder.includes(a.rule.projectId)) projectOrder.push(a.rule.projectId);
 
   const withColor = agents.map((agent) => ({ agent, color: colorForProject(agent.rule.projectId, projectOrder) }));
-  const ownApps = withColor.filter((x) => x.agent.projectType === "app");
-  const ownWebsites = withColor.filter((x) => x.agent.projectType === "website");
+  const ownApps = withColor.filter((x) => !x.agent.isCustomer && x.agent.projectType === "app");
+  const ownWebsites = withColor.filter((x) => !x.agent.isCustomer && x.agent.projectType === "website");
+  const customerApps = withColor.filter((x) => x.agent.isCustomer && x.agent.projectType === "app");
+  const customerWebsites = withColor.filter((x) => x.agent.isCustomer && x.agent.projectType === "website");
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const deskElsRef = useRef(new Map<string, HTMLDivElement>());
@@ -1184,8 +1192,8 @@ export const OfficeFloorScene = memo(function OfficeFloorScene({ agents, onSelec
         <Box sx={{ mt: 3 }}>
           <Box sx={{ fontSize: "0.8rem", fontWeight: 800, color: "#4a3d2a", mb: 1.5, pl: 0.5 }}>💼 Kundenprojekte</Box>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            <OfficeZone title="Apps" agents={[]} accentColor="#9ca3af" awayAgentIds={awayAgentIds} onSelectAgent={onSelectAgent} registerDeskRef={registerDeskRef} emptyLabel="Noch keine Kundenprojekte hinterlegt" />
-            <OfficeZone title="Webseiten" agents={[]} accentColor="#9ca3af" awayAgentIds={awayAgentIds} onSelectAgent={onSelectAgent} registerDeskRef={registerDeskRef} emptyLabel="Noch keine Kundenprojekte hinterlegt" />
+            <OfficeZone title="Apps" agents={customerApps} accentColor="#9ca3af" awayAgentIds={awayAgentIds} onSelectAgent={onSelectAgent} registerDeskRef={registerDeskRef} emptyLabel="Noch keine Kundenprojekte hinterlegt" />
+            <OfficeZone title="Webseiten" agents={customerWebsites} accentColor="#9ca3af" awayAgentIds={awayAgentIds} onSelectAgent={onSelectAgent} registerDeskRef={registerDeskRef} emptyLabel="Noch keine Kundenprojekte hinterlegt" />
           </Box>
         </Box>
 
