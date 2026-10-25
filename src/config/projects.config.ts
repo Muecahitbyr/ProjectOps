@@ -217,4 +217,17 @@ export const projects: ProjectConfig[] = [
       },
     ],
   },
+  {
+    id: "praxisoffice",
+    name: "praxisoffice.de",
+    type: "website",
+    description: "Kundenprojekt Alrayes - Frontend auf Cloudflare Workers, Backend/DB auf Railway",
+    checks: [
+      { id: "praxisoffice-frontend", type: "http", target: "https://praxisoffice.de", intervalMinutes: 3, enabled: true },
+      // /api/health/ready fuehrt eine echte DB-Abfrage aus (Prisma SELECT 1) -
+      // 200 nur wenn die Datenbank erreichbar ist, sonst 503. Damit deckt ein
+      // reiner Status-Check Backend UND Datenbank ab, ohne Body-Parsing.
+      { id: "praxisoffice-api-health", type: "api-health", target: "https://alrayes-production.up.railway.app/api/health/ready", intervalMinutes: 3, enabled: true, expectedStatusCodes: [200] },
+    ],
+  },
 ];
