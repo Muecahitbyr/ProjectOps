@@ -21,14 +21,22 @@ import { getErrorMessage } from "../utils/getErrorMessage";
 // rein deterministisch aus dem echten Projektnamen abgeleitet, keine fest
 // verdrahtete Liste erfundener Kuerzel: PascalCase-Namen liefern ihre
 // Grossbuchstaben-Folge ("DriveConnect" -> "DC"), sonst die Anfangsbuchstaben
-// der durch Nicht-Buchstaben getrennten Teile ("bayar-solutions.de" ->
-// "BSD"), sonst die ersten zwei Buchstaben ("Rechno" -> "RE").
+// der durch Nicht-Buchstaben getrennten Teile ("bayar-solutions.de" -> "BS",
+// die Domain-Endung zaehlt nicht mit), sonst die ersten zwei Buchstaben
+// ("Rechno" -> "RE"). Zusammengeschriebene Domains, deren Wortgrenzen sich
+// nicht ableiten lassen, stehen auf Nutzerwunsch in DESK_LABEL_OVERRIDES
+// ("praxisoffice.de" -> "PO" statt "PD").
+const DESK_LABEL_OVERRIDES: Record<string, string> = { praxisoffice: "PO" };
+
 function abbreviateProjectName(name: string): string {
-  const capitals = name.match(/[A-Z]/g);
+  const base = name.trim().replace(/\.[a-z]{2,6}$/i, "");
+  const override = DESK_LABEL_OVERRIDES[base.toLowerCase()];
+  if (override) return override;
+  const capitals = base.match(/[A-Z]/g);
   if (capitals && capitals.length >= 2) return capitals.join("");
-  const parts = name.split(/[^a-zA-Z0-9]+/).filter(Boolean);
+  const parts = base.split(/[^a-zA-Z0-9]+/).filter(Boolean);
   if (parts.length >= 2) return parts.map((part) => part[0]!.toUpperCase()).join("");
-  return name.slice(0, 2).toUpperCase();
+  return base.slice(0, 2).toUpperCase();
 }
 
 // "Schlechtester Status zuerst" - bestimmt, welche der zusammengefassten
