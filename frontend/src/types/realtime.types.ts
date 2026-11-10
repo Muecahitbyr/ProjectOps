@@ -2,6 +2,7 @@ import type { CheckStatus, HealthStatus } from "./common.types";
 import type { Todo } from "./todo.types";
 import type { AcquisitionCompany } from "./acquisition.types";
 import type { NisanGuest } from "./nisan.types";
+import type { JobApplication } from "./job-application.types";
 import type { ClientProject } from "./client-project.types";
 import type { CustomerFinderJob } from "./customer-finder.types";
 import type { Incident } from "./incident.types";
@@ -175,6 +176,7 @@ export type RealtimeEventType =
   | "TODO_UPDATED"
   | "ACQUISITION_COMPANY_UPDATED"
   | "NISAN_GUEST_UPDATED"
+  | "JOB_APPLICATION_UPDATED"
   | "CLIENT_PROJECT_UPDATED"
   | "CUSTOMER_FINDER_JOB_STATUS_CHANGED"
   | "CUSTOMER_FINDER_RESULT_ADDED";
@@ -294,6 +296,7 @@ export const REALTIME_EVENT_TYPES: readonly RealtimeEventType[] = [
   "TODO_UPDATED",
   "ACQUISITION_COMPANY_UPDATED",
   "NISAN_GUEST_UPDATED",
+  "JOB_APPLICATION_UPDATED",
   "CLIENT_PROJECT_UPDATED",
   "CUSTOMER_FINDER_JOB_STATUS_CHANGED",
   "CUSTOMER_FINDER_RESULT_ADDED",
@@ -624,6 +627,7 @@ export type RealtimeEvent =
   | { type: "TODO_UPDATED"; timestamp: string; payload: Todo }
   | { type: "ACQUISITION_COMPANY_UPDATED"; timestamp: string; payload: AcquisitionCompany }
   | { type: "NISAN_GUEST_UPDATED"; timestamp: string; payload: NisanGuest }
+  | { type: "JOB_APPLICATION_UPDATED"; timestamp: string; payload: JobApplication }
   | { type: "CLIENT_PROJECT_UPDATED"; timestamp: string; payload: ClientProject }
   | { type: "CUSTOMER_FINDER_JOB_STATUS_CHANGED"; timestamp: string; payload: CustomerFinderJob }
   | { type: "CUSTOMER_FINDER_RESULT_ADDED"; timestamp: string; payload: { jobId: number } };

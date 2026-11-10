@@ -20,6 +20,7 @@ const AiOperationsOffice = lazy(() => import("./pages/AiOperationsOffice").then(
 const ClientProjects = lazy(() => import("./pages/ClientProjects").then((m) => ({ default: m.ClientProjects })));
 const Acquisition = lazy(() => import("./pages/Acquisition").then((m) => ({ default: m.Acquisition })));
 const Nisan = lazy(() => import("./pages/Nisan").then((m) => ({ default: m.Nisan })));
+const Bewerbungen = lazy(() => import("./pages/Bewerbungen").then((m) => ({ default: m.Bewerbungen })));
 const CustomerFinder = lazy(() => import("./pages/CustomerFinder").then((m) => ({ default: m.CustomerFinder })));
 // Phase 13 Teil 3 "Public Status Page" - eigener Chunk, aber bewusst NICHT
 // Teil der /* -ProtectedRoute-Gruppe unten (siehe eigene Route neben
@@ -57,6 +58,7 @@ export default function App() {
                   <Route path="/projects" element={<ClientProjects />} />
                   <Route path="/acquisition" element={<Acquisition />} />
                   <Route path="/nisan" element={<Nisan />} />
+                  <Route path="/bewerbungen" element={<Bewerbungen />} />
                   <Route path="/customer-finder" element={<CustomerFinder />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="*" element={<Navigate to="/ai-office" replace />} />
